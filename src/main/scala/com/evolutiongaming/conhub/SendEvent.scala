@@ -72,10 +72,11 @@ object SendEvent {
     reconnectTimeout: FiniteDuration,
     idSerializer: Serializer.Str[Id],
     conSerializer: Serializer.Bin[T],
-    factory: ActorRefFactory)(implicit system: ActorSystem, ec: ExecutionContext): SendEvent[Id, T] = {
+    factory: ActorRefFactory,
+    conhubRole: String)(implicit system: ActorSystem, ec: ExecutionContext): SendEvent[Id, T] = {
 
     val receive = ReceiveEvent(conStates, reconnectTimeout, idSerializer, conSerializer)
-    val send = SendMsg(name, receive, factory)
+    val send = SendMsg(name, receive, factory, conhubRole)
     apply(send, idSerializer, conSerializer)
   }
 
