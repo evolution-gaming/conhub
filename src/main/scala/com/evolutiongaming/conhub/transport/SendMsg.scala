@@ -4,10 +4,13 @@ import akka.actor._
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, Member, MemberStatus}
 import com.evolutiongaming.safeakka.actor.ActorLog
+import com.typesafe.config.ConfigFactory
+import com.evolutiongaming.config.ConfigHelper._
 
 import scala.compat.Platform
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
+import scala.util.Try
 import scala.util.control.NonFatal
 
 trait SendMsg[-T] {
@@ -36,14 +39,20 @@ object SendMsg {
     name: String,
     receive: ReceiveMsg[T],
     factory: ActorRefFactory,
+    role: String,
     retryInterval: FiniteDuration = RetryInterval)(implicit
     tag: ClassTag[T],
     system: ActorSystem): SendMsg[T] = {
 
+    def validate(cluster: Cluster): Unit =
+      if (!cluster.selfRoles.contains(role))
+        sys.error(s"Current node doesn't contain conhub's role ${ role }")
+
     if (system.hasExtension(Cluster)) {
       val cluster = Cluster(system)
+      validate(cluster)
       val log = ActorLog(system, classOf[SendMsg[_]]) prefixed name
-      apply(name, receive, factory, retryInterval, cluster, log)
+      apply(name, receive, factory, retryInterval, cluster, role, log)
     } else {
       empty
     }
@@ -55,6 +64,7 @@ object SendMsg {
     factory: ActorRefFactory,
     retryInterval: FiniteDuration,
     cluster: Cluster,
+    role: String,
     log: ActorLog)(implicit tag: ClassTag[T], system: ActorSystem): SendMsg[T] = {
 
     final case class Retry(address: Address)
@@ -78,7 +88,6 @@ object SendMsg {
     implicit val tell = new Tell[T] {}
 
     var state = Map.empty[Address, Channel]
-
 
     def safe(msg: => String)(f: => Unit): Unit = {
       try f catch {
@@ -148,9 +157,10 @@ object SendMsg {
 
       def onMemberEvent(event: MemberEvent): Unit = {
 
-        def onMemberUp(address: Address): Unit = {
+        def onMemberUp(member: Member): Unit = {
+          val address = member.address
           log.debug(s"receive MemberUp for $address")
-          if (address != cluster.selfAddress && !(state contains address)) {
+          if (address != cluster.selfAddress && !(state contains address) && member.roles.contains(role)) {
             val id = Platform.currentTime
             identify(address, id)
             val channel = Channel.Connecting(id)
@@ -164,15 +174,15 @@ object SendMsg {
         }
 
         event match {
-          case event: MemberUp       => onMemberUp(event.member.address)
-          case event: MemberWeaklyUp => onMemberUp(event.member.address)
+          case event: MemberUp       => onMemberUp(event.member)
+          case event: MemberWeaklyUp => onMemberUp(event.member)
           case event: MemberRemoved  => onMemberRemoved(event.member.address)
           case _                     =>
         }
       }
 
       def onClusterState(clusterState: CurrentClusterState): Unit = {
-        val addresses = clusterState.addresses
+        val addresses = clusterState.addresses(role)
         log.debug(s"receive CurrentClusterState ${ addresses mkString "," }")
         val now = Platform.currentTime
         val result = for {
@@ -289,14 +299,16 @@ object SendMsg {
 
   implicit class StatusOps(val self: CurrentClusterState) extends AnyVal {
 
-    def addresses: Set[Address] = {
+    def addresses(role: String): Set[Address] = {
 
       def up(member: Member) = {
         val status = member.status
         status == MemberStatus.Up || status == MemberStatus.WeaklyUp
       }
 
-      self.members.collect { case member if up(member) => member.address }
+      def hasRole(member: Member) = member.roles.contains(role)
+
+      self.members.collect { case member if up(member) && hasRole(member) => member.address }
     }
   }
 
