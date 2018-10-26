@@ -39,7 +39,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % "2.5.16",
-  "org.mockito" % "mockito-core" % "2.17.5" % Test,
+  "org.mockito" % "mockito-core" % "2.19.0" % Test,
   "com.evolutiongaming" %% "akka-tools-util" % "1.5.4",
   "com.evolutiongaming" %% "akka-tools-test" % "1.5.4" % Test,
   "com.evolutiongaming" %% "config-tools" % "1.0.3",
