@@ -26,8 +26,7 @@ object ConHub {
 
     def conStates: ConStates[Id, T, M]
 
-    def cons(l: L, localCall: Boolean = true): Iterable[C] =
-      Option(searchEngine).toIterable.flatMap(_.apply(l, conStates.values, localCall))
+    def cons(l: L, localCall: Boolean = true): Iterable[C] = searchEngine(l, conStates.values, localCall)
 
     def cons: Iterable[C] = conStates.values.values
 
