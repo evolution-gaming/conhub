@@ -4,6 +4,7 @@ import java.time.Instant
 
 import akka.actor.Address
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
+import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.conhub.SequentialMapHelper._
 import com.evolutiongaming.util.Scheduler
 import com.typesafe.scalalogging.LazyLogging
