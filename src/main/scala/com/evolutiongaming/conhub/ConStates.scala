@@ -4,7 +4,6 @@ import java.time.Instant
 
 import akka.actor.Address
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
-import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.conhub.SequentialMapHelper._
 import com.evolutiongaming.util.Scheduler
 import com.typesafe.scalalogging.LazyLogging
@@ -14,8 +13,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 trait ConStates[Id, T, M] extends ConnTypes[T, M] {
-  import ConStates._
-
   type Result = Future[UpdateResult[T]]
 
   def values: collection.Map[Id, C]
@@ -26,9 +23,9 @@ trait ConStates[Id, T, M] extends ConnTypes[T, M] {
 
   def update(id: Id, version: Version, conn: T, address: Address): Result
 
-  def disconnect(id: Id, version: Version, timeout: FiniteDuration, ctx: Ctx = Ctx.Local): Result
+  def disconnect(id: Id, version: Version, timeout: FiniteDuration, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result
 
-  def remove(id: Id, version: Version, ctx: Ctx = Ctx.Local): Result
+  def remove(id: Id, version: Version, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result
 
   def checkConsistency(id: Id): Result
 
@@ -39,7 +36,6 @@ trait ConStates[Id, T, M] extends ConnTypes[T, M] {
 object ConStates {
 
   type Connect[Id, T, M] = ConStates[Id, T, M] => SendEvent[Id, T]
-
 
   def apply[Id, T, M](
     states: SequentialMap[Id, Conn[T, M]],

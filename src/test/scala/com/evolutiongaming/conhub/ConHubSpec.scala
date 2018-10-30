@@ -48,14 +48,13 @@ class ConHubSpec extends WordSpec with ActorSpec {
     }
 
     val conStates = new ConStates[Void, Void, Void] {
-      import ConStates._
       private val result = Future.successful(UpdateResult.empty[Void])
       def values: collection.Map[Void, C] = Map.empty
       def update(id: Void, local: C.Local): Result = result
       def update(id: Void, version: Version, value: Array[Byte], address: Address): Result = result
       def update(id: Void, version: Version, conn: Void, address: Address): Result = result
-      def disconnect(id: Void, version: Version, timeout: FiniteDuration, ctx: Ctx = Ctx.Local): Result = result
-      def remove(id: Void, version: Version, ctx: Ctx = Ctx.Local): Result = result
+      def disconnect(id: Void, version: Version, timeout: FiniteDuration, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result = result
+      def remove(id: Void, version: Version, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result = result
       def checkConsistency(id: Void): Result = result
       def sync(id: Void): Result = result
     }
