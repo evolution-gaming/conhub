@@ -33,6 +33,8 @@ Test / fork := true
 
 scalacOptions in(Compile, doc) ++= Seq("-groups", "-implicits", "-no-link-warnings")
 
+resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % "2.5.16",
   "com.evolutiongaming" %% "akka-tools-util" % "1.5.6",
