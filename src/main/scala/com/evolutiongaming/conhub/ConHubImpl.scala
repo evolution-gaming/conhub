@@ -1,5 +1,7 @@
 package com.evolutiongaming.conhub
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import akka.actor.ActorRefFactory
 import com.evolutiongaming.concurrent.sequentially.Sequentially
 import com.evolutiongaming.nel.Nel
@@ -26,10 +28,12 @@ object ConHubImpl extends LazyLogging {
 
     new ConHub[Id, T, M, L] {
 
+      private val initialized = new AtomicBoolean(false)
+
       val onMsgs: OnMsgs[M] = msgs => {
         val msgsAndCons = for {
           msg <- msgs.toList
-          cons = this.cons(msg.lookup, localCall = false)
+          cons = if(initialized.get()) this.cons(msg.lookup, localCall = false) else Iterable.empty
           if cons.nonEmpty
         } yield (msg, cons)
 
@@ -39,6 +43,8 @@ object ConHubImpl extends LazyLogging {
       }
 
       val (searchEngine, conStates, sendMsgs) = connect(onMsgs)
+
+      initialized.set(true)
 
       metrics.registerGauges(cons)
 
