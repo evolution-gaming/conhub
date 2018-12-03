@@ -173,10 +173,16 @@ object SendMsg {
           disconnect(address)
         }
 
+        def onMemberDowned(address: Address): Unit = {
+          log.debug(s"receive MemberDowned from $address")
+          disconnect(address)
+        }
+
         event match {
           case event: MemberUp       => onMemberUp(event.member)
           case event: MemberWeaklyUp => onMemberUp(event.member)
           case event: MemberRemoved  => onMemberRemoved(event.member.address)
+          case event: MemberDowned   => onMemberDowned(event.member.address)
           case _                     =>
         }
       }

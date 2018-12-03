@@ -36,7 +36,7 @@ scalacOptions in(Compile, doc) ++= Seq("-groups", "-implicits", "-no-link-warnin
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-cluster" % "2.5.17",
+  "com.typesafe.akka" %% "akka-cluster" % "2.5.18",
   "com.evolutiongaming" %% "akka-tools-util" % "1.5.5",
   "com.evolutiongaming" %% "akka-tools-test" % "1.5.5" % Test,
   "com.evolutiongaming" %% "config-tools" % "1.0.3",
