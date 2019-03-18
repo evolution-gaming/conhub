@@ -6,7 +6,6 @@ import akka.actor.{ActorRef, Address}
 import akka.testkit.TestProbe
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.{SequentialMap, Sequentially}
-import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.conhub.ConHubSpecHelper._
 import com.evolutiongaming.conhub.ConStates.{Ctx, Diff}
 import com.evolutiongaming.conhub.transport.SendMsg

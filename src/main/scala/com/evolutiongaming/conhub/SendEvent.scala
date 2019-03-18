@@ -75,7 +75,7 @@ object SendEvent {
     factory: ActorRefFactory,
     conhubRole: String)(implicit system: ActorSystem, ec: ExecutionContext): SendEvent[Id, T] = {
 
-    val receive = ReceiveEvent(conStates, reconnectTimeout, idSerializer, conSerializer)
+    val receive = ReceiveEvent(conStates, reconnectTimeout, idSerializer)
     val send = SendMsg(name, receive, factory, conhubRole)
     apply(send, idSerializer, conSerializer)
   }
@@ -95,8 +95,9 @@ object ReceiveEvent {
   def apply[Id, T, M](
     conStates: ConStates[Id, T, M],
     reconnectTimeout: FiniteDuration,
-    idSerializer: Serializer.Str[Id],
-    conSerializer: Serializer.Bin[T])(implicit ec: ExecutionContext): ReceiveMsg[RemoteEvent] = {
+    idSerializer: Serializer.Str[Id])(implicit
+    ec: ExecutionContext
+  ): ReceiveMsg[RemoteEvent] = {
 
     new ReceiveMsg[RemoteEvent] with ConnTypes[T, M] {
 
@@ -133,7 +134,7 @@ object ReceiveEvent {
 
         def onUpdated(value: R.Value): Unit = {
           val id = idSerializer.from(value.id)
-          conStates.update(id, value.version, value.bytes, address)
+          val _ = conStates.update(id, value.version, value.bytes, address)
         }
 
         def onSync(values: Nel[R.Value]): Unit = {
@@ -144,12 +145,12 @@ object ReceiveEvent {
 
         def onDisconnected(event: R.Event.Disconnected): Unit = {
           val id = idSerializer.from(event.id)
-          conStates.disconnect(id, event.version, event.timeout, ctx)
+          val _ = conStates.disconnect(id, event.version, event.timeout, ctx)
         }
 
         def onRemoved(event: R.Event.Removed): Unit = {
           val id = idSerializer.from(event.id)
-          conStates.remove(id, event.version, ctx)
+          val _ = conStates.remove(id, event.version, ctx)
         }
 
 

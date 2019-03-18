@@ -2,7 +2,6 @@ package com.evolutiongaming.conhub
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
-import com.evolutiongaming.concurrent.FutureHelper._
 
 import scala.concurrent.Future
 

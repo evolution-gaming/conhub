@@ -4,13 +4,10 @@ import akka.actor._
 import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, Member, MemberStatus}
 import com.evolutiongaming.safeakka.actor.ActorLog
-import com.typesafe.config.ConfigFactory
-import com.evolutiongaming.config.ConfigHelper._
 
 import scala.compat.Platform
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
-import scala.util.Try
 import scala.util.control.NonFatal
 
 trait SendMsg[-T] {
@@ -116,7 +113,7 @@ object SendMsg {
       }
     }
 
-    def connected(address: Address, channel: Channel.Connected): Unit = {
+    def connected(address: Address): Unit = {
       safe(s"connected failed for $address") {
         receive.connected(address)
       }
@@ -143,7 +140,7 @@ object SendMsg {
           context.watch(ref)
           val identity = ActorIdentity("ready", Some(self))
           channel(identity)
-          connected(address, channel)
+          connected(address)
         }
 
         state.get(address) match {
@@ -214,7 +211,7 @@ object SendMsg {
             address match {
               case Some(address) =>
                 log.debug(s"retrying in $retryInterval")
-                scheduler.scheduleOnce(retryInterval, self, Retry(address))
+                val _ = scheduler.scheduleOnce(retryInterval, self, Retry(address))
 
               case None =>
                 log.warn(s"cannot find address for $id")

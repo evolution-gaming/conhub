@@ -1,17 +1,15 @@
 package com.evolutiongaming.conhub
 
-import akka.actor.ExtendedActorSystem
 import com.evolutiongaming.conhub.{RemoteEvent => R}
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.serialization.SerializerHelper._
-import com.evolutiongaming.test.ActorSpec
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.concurrent.duration._
 
-class ConHubSerializerSpec extends FunSuite with ActorSpec with Matchers {
+class ConHubSerializerSpec extends FunSuite with Matchers {
 
-  private val serializer = new ConHubSerializer(system.asInstanceOf[ExtendedActorSystem])
+  private val serializer = new ConHubSerializer
 
   private val version = Version.Zero
 

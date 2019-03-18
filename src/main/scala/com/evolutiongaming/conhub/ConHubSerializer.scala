@@ -4,7 +4,6 @@ import java.io.NotSerializableException
 import java.lang.{Integer => IntJ, Long => LongJ}
 import java.nio.ByteBuffer
 
-import akka.actor.ExtendedActorSystem
 import akka.serialization.SerializerWithStringManifest
 import com.evolutiongaming.conhub.{RemoteEvent => R}
 import com.evolutiongaming.nel.Nel
@@ -12,7 +11,7 @@ import com.evolutiongaming.serialization.SerializerHelper._
 
 import scala.concurrent.duration._
 
-class ConHubSerializer(system: ExtendedActorSystem) extends SerializerWithStringManifest {
+class ConHubSerializer extends SerializerWithStringManifest {
   import ConHubSerializer._
 
   private val EventManifest = "A"
@@ -203,7 +202,7 @@ object ConHubSerializer {
     }
 
     def writeVersion(version: Version): Unit = {
-      self.putLong(version.value)
+      val _ = self.putLong(version.value)
     }
 
     def readVersion: Version = Version(self.getLong)

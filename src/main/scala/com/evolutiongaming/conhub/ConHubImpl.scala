@@ -2,7 +2,6 @@ package com.evolutiongaming.conhub
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import akka.actor.ActorRefFactory
 import com.evolutiongaming.concurrent.sequentially.Sequentially
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.concurrent.FutureHelper._
@@ -19,7 +18,6 @@ object ConHubImpl extends LazyLogging {
   type Connect[Id, T, L, M] = OnMsgs[M] => (SearchEngine[Id, T, M, L], ConStates[Id, T, M], SendMsgs[Id, T, M])
 
   def apply[Id, T, L, K, M](
-    actorFactory: ActorRefFactory,
     sequentially: Sequentially[K],
     msgOps: ConHubImpl.MsgOps[M, L, K],
     metrics: ConMetrics[Id, T, M],

@@ -4,13 +4,12 @@ import akka.actor.Address
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.Sequentially
 import com.evolutiongaming.nel.Nel
-import com.evolutiongaming.test.ActorSpec
 import org.scalatest.WordSpec
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-class ConHubSpec extends WordSpec with ActorSpec {
+class ConHubSpec extends WordSpec {
 
   "ConHub" should {
 
@@ -24,7 +23,7 @@ class ConHubSpec extends WordSpec with ActorSpec {
     }
   }
 
-  private trait Scope extends ActorScope {
+  private trait Scope {
 
     case class Void()
     val void = Void()
@@ -66,7 +65,6 @@ class ConHubSpec extends WordSpec with ActorSpec {
     }
 
     def conHub = ConHubImpl[Void, Void, Void, Void, Void](
-      system,
       Sequentially.now[Void],
       MsgOps,
       EmptyConMetrics,

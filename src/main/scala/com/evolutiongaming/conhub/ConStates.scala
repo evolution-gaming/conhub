@@ -4,7 +4,6 @@ import java.time.Instant
 
 import akka.actor.Address
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
-import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.conhub.SequentialMapHelper._
 import com.evolutiongaming.util.Scheduler
 import com.typesafe.scalalogging.LazyLogging
@@ -100,8 +99,8 @@ object ConStates {
 
               val timeoutFinal = if (local) timeout else (timeout * 1.2).asInstanceOf[FiniteDuration]
 
-              scheduler.scheduleOnce(timeoutFinal, runOnShutdown = false) {
-                updatePf(id, Some(version), "timeout") { case Some(before: C.Disconnected) if before.timestamp == timestamp =>
+              val _ = scheduler.scheduleOnce(timeoutFinal, runOnShutdown = false) {
+                val _ = updatePf(id, Some(version), "timeout") { case Some(before: C.Disconnected) if before.timestamp == timestamp =>
                   remove(id, version, local = local)
                 }
               }
