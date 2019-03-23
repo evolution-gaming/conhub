@@ -9,7 +9,7 @@ object SequentialMapHelper {
 
   implicit class SequentialMapOps[K, V](val self: SequentialMap[K, V]) extends AnyVal {
 
-    def updateAndRun[T](key: K)(f: Option[V] => (MapDirective[V], () => T)): Future[T] = {
+    def updateAndRun[A](key: K)(f: Option[V] => (MapDirective[V], () => A)): Future[A] = {
       val result = self.update(key)(f)
       // done in `mapNow` to ensure SequentialMap is already updated when this called
       result.mapNow { run => run() }
@@ -56,9 +56,9 @@ object SequentialMapHelper {
   }
 
 
-  implicit class FutureOps[T](val self: Future[T]) extends AnyVal {
+  implicit class FutureOps[A](val self: Future[A]) extends AnyVal {
 
     // to execute f strictly in order of future origin
-    def mapNow[TT](f: T => TT): Future[TT] = self.map(f)(CurrentThreadExecutionContext)
+    def mapNow[B](f: A => B): Future[B] = self.map(f)(CurrentThreadExecutionContext)
   }
 }

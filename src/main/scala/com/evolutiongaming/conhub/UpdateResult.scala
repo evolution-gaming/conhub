@@ -5,7 +5,7 @@ package com.evolutiongaming.conhub
   * @param updated whether action did update the value
   * @param value   value before the update if it was updated or current value otherwise
   */
-final case class UpdateResult[+T](updated: Boolean = false, value: Option[T] = None)
+final case class UpdateResult[+A](updated: Boolean = false, value: Option[A] = None)
 
 object UpdateResult {
 
@@ -14,11 +14,11 @@ object UpdateResult {
   private val Created = UpdateResult(updated = true)
 
 
-  def empty[T]: UpdateResult[T] = Empty
+  def empty[A]: UpdateResult[A] = Empty
 
-  def created[T]: UpdateResult[T] = Created
+  def created[A]: UpdateResult[A] = Created
 
-  def apply[T](updated: Boolean, value: T): UpdateResult[T] = UpdateResult(updated, Some(value))
+  def apply[A](updated: Boolean, value: A): UpdateResult[A] = UpdateResult(updated, Some(value))
 
-  def apply[T](value: T): UpdateResult[T] = UpdateResult(value = Some(value))
+  def apply[A](value: A): UpdateResult[A] = UpdateResult(value = Some(value))
 }

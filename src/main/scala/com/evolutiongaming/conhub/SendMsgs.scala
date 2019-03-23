@@ -4,7 +4,7 @@ import akka.actor.Address
 import com.evolutiongaming.conhub.transport.SendMsg
 import com.evolutiongaming.nel.Nel
 
-trait SendMsgs[Id, T, M] extends ConnTypes[T, M] {
+trait SendMsgs[Id, A, M] extends ConnTypes[A, M] {
 
   def apply(msg: M, con: C.Connected): Unit
 

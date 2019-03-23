@@ -21,14 +21,15 @@ trait SendEvent[Id, T] {
 
 object SendEvent {
 
-  def apply[Id, T](
+  def apply[Id, A](
     send: R.Event => Unit,
     idSerializer: Serializer.Str[Id],
-    conSerializer: Serializer.Bin[T]): SendEvent[Id, T] = {
+    conSerializer: Serializer.Bin[A]
+  ): SendEvent[Id, A] = {
 
-    new SendEvent[Id, T] {
+    new SendEvent[Id, A] {
 
-      def updated(id: Id, con: T, version: Version): Unit = {
+      def updated(id: Id, con: A, version: Version): Unit = {
         val idStr = idSerializer.to(id)
         val conBytes = conSerializer.to(con)
         val value = R.Value(idStr, conBytes, version)
@@ -47,7 +48,7 @@ object SendEvent {
         send(removed)
       }
 
-      def sync(id: Id, con: T, version: Version): Unit = {
+      def sync(id: Id, con: A, version: Version): Unit = {
         val idStr = idSerializer.to(id)
         val conBytes = conSerializer.to(con)
         val value = R.Value(idStr, conBytes, version)
@@ -57,23 +58,27 @@ object SendEvent {
     }
   }
 
-  def apply[Id, T](
+  def apply[Id, A](
     sendMsg: SendMsg[RemoteEvent],
     idSerializer: Serializer.Str[Id],
-    conSerializer: Serializer.Bin[T]): SendEvent[Id, T] = {
+    conSerializer: Serializer.Bin[A]
+  ): SendEvent[Id, A] = {
 
     val send = (event: R.Event) => sendMsg(RemoteEvent(event), Nil)
     apply(send, idSerializer, conSerializer)
   }
 
-  def apply[Id, T, M](
+  def apply[Id, A, M](
     name: String,
-    conStates: ConStates[Id, T, M],
+    conStates: ConStates[Id, A, M],
     reconnectTimeout: FiniteDuration,
     idSerializer: Serializer.Str[Id],
-    conSerializer: Serializer.Bin[T],
+    conSerializer: Serializer.Bin[A],
     factory: ActorRefFactory,
-    conhubRole: String)(implicit system: ActorSystem, ec: ExecutionContext): SendEvent[Id, T] = {
+    conhubRole: String)(implicit
+    system: ActorSystem,
+    ec: ExecutionContext
+  ): SendEvent[Id, A] = {
 
     val receive = ReceiveEvent(conStates, reconnectTimeout, idSerializer)
     val send = SendMsg(name, receive, factory, conhubRole)
@@ -92,14 +97,14 @@ object SendEvent {
 
 object ReceiveEvent {
 
-  def apply[Id, T, M](
-    conStates: ConStates[Id, T, M],
+  def apply[Id, A, M](
+    conStates: ConStates[Id, A, M],
     reconnectTimeout: FiniteDuration,
     idSerializer: Serializer.Str[Id])(implicit
     ec: ExecutionContext
   ): ReceiveMsg[RemoteEvent] = {
 
-    new ReceiveMsg[RemoteEvent] with ConnTypes[T, M] {
+    new ReceiveMsg[RemoteEvent] with ConnTypes[A, M] {
 
       def connected(address: Address) = {
         val ids = for {

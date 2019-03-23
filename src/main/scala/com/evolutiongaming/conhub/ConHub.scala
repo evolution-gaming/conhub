@@ -5,13 +5,13 @@ import com.evolutiongaming.nel.Nel
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-trait ConHub[Id, T, M, L] extends ConHub.Send[T, M]
-  with ConHub.View[Id, T, M, L]
-  with ConHub.Manage[Id, T, M]
+trait ConHub[Id, A, M, L] extends ConHub.Send[A, M]
+  with ConHub.View[Id, A, M, L]
+  with ConHub.Manage[Id, A, M]
 
 object ConHub {
 
-  trait Send[T, M] extends ConnTypes[T, M] {
+  trait Send[A, M] extends ConnTypes[A, M] {
     type SR = Future[SendResult[C]]
 
     def !(msg: M): SR
@@ -20,11 +20,11 @@ object ConHub {
   }
 
 
-  trait View[Id, T, M, L] extends ConnTypes[T, M] {
+  trait View[Id, A, M, L] extends ConnTypes[A, M] {
 
-    def searchEngine: SearchEngine[Id, T, M, L]
+    def searchEngine: SearchEngine[Id, A, M, L]
 
-    def conStates: ConStates[Id, T, M]
+    def conStates: ConStates[Id, A, M]
 
     def cons(l: L, localCall: Boolean = true): Iterable[C] = searchEngine(l, conStates.values, localCall)
 
@@ -36,8 +36,8 @@ object ConHub {
   }
 
 
-  trait Manage[Id, T, M] {
-    type Result = Future[UpdateResult[T]]
+  trait Manage[Id, A, M] {
+    type Result = Future[UpdateResult[A]]
 
     /**
       *
@@ -46,7 +46,7 @@ object ConHub {
       * @param con new connection
       * @param send function which will be used to forward messages for particular connection
       */
-    def update(id: Id, version: Version, con: T, send: Conn.Send[M]): Result
+    def update(id: Id, version: Version, con: A, send: Conn.Send[M]): Result
 
     /**
       * Disconnect a connection with instance tracking, to check later for successful disconnect or failure
@@ -67,13 +67,13 @@ object ConHub {
 }
 
 
-trait ConnTypes[T, M] {
-  type C = Conn[T, M]
+trait ConnTypes[A, M] {
+  type C = Conn[A, M]
 
   object C {
-    type Local = Conn.Local[T, M]
-    type Remote = Conn.Remote[T]
-    type Disconnected = Conn.Disconnected[T]
-    type Connected = Conn.Connected[T, M]
+    type Local = Conn.Local[A, M]
+    type Remote = Conn.Remote[A]
+    type Disconnected = Conn.Disconnected[A]
+    type Connected = Conn.Connected[A, M]
   }
 }

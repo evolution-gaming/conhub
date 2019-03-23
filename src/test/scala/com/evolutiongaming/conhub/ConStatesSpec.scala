@@ -232,7 +232,7 @@ class ConStatesSpec extends WordSpec with ActorSpec with Matchers with ConHubSpe
     }
   }
 
-  implicit class FutureOps[T](self: Future[T]) {
-    def get: T = self.value.get.get
+  implicit class FutureOps[A](self: Future[A]) {
+    def get: A = self.value.get.get
   }
 }

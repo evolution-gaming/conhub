@@ -2,7 +2,7 @@ package com.evolutiongaming.conhub
 
 import scala.concurrent.Future
 
-final case class SendResult[+T](cons: Iterable[T])
+final case class SendResult[+A](cons: Iterable[A])
 
 object SendResult {
 
@@ -11,7 +11,7 @@ object SendResult {
   private val EmptyFuture = Future.successful(Empty)
   
 
-  def empty[T]: SendResult[T] = Empty
+  def empty[A]: SendResult[A] = Empty
 
-  def emptyFuture[T]: Future[SendResult[T]] = EmptyFuture
+  def emptyFuture[A]: Future[SendResult[A]] = EmptyFuture
 }

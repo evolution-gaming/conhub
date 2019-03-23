@@ -1,6 +1,7 @@
 package com.evolutiongaming.conhub
 
 import com.evolutiongaming.nel.Nel
+import scodec.bits.ByteVector
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -8,7 +9,7 @@ final case class RemoteEvent(event: RemoteEvent.Event)
 
 object RemoteEvent {
 
-  final case class Value(id: String, bytes: Array[Byte], version: Version)
+  final case class Value(id: String, bytes: ByteVector, version: Version)
 
 
   sealed trait Event
@@ -28,4 +29,4 @@ object RemoteEvent {
 }
 
 
-final case class RemoteMsgs(values: Nel[Array[Byte]])
+final case class RemoteMsgs(values: Nel[ByteVector])

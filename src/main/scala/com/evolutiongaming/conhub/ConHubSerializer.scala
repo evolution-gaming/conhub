@@ -1,13 +1,13 @@
 package com.evolutiongaming.conhub
 
 import java.io.NotSerializableException
-import java.lang.{Integer => IntJ, Long => LongJ}
-import java.nio.ByteBuffer
+import java.lang.{Byte => ByteJ}
 
 import akka.serialization.SerializerWithStringManifest
 import com.evolutiongaming.conhub.{RemoteEvent => R}
 import com.evolutiongaming.nel.Nel
-import com.evolutiongaming.serialization.SerializerHelper._
+import scodec.bits.{BitVector, ByteVector}
+import scodec.{Attempt, Codec, DecodeResult, Err, SizeBound, codecs}
 
 import scala.concurrent.duration._
 
@@ -29,182 +29,122 @@ class ConHubSerializer extends SerializerWithStringManifest {
 
   def toBinary(x: AnyRef): Array[Byte] = {
     x match {
-      case x: RemoteEvent => eventToBinary(x)
-      case x: RemoteMsgs  => msgsNewToBinary(x)
+      case x: RemoteEvent => eventToBinary(x).require.toArray
+      case x: RemoteMsgs  => msgsToBinary(x).require.toByteArray
       case _              => illegalArgument(s"Cannot serialize message of ${ x.getClass } in ${ getClass.getName }")
     }
   }
 
   def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
     manifest match {
-      case EventManifest => eventFromBinary(bytes)
-      case MsgsManifest  => msgsNewFromBinary(bytes)
+      case EventManifest => eventFromBinary(BitVector.view(bytes))
+      case MsgsManifest  => msgsFromBinary(BitVector.view(bytes))
       case _             => notSerializable(s"Cannot deserialize message for manifest $manifest in ${ getClass.getName }")
     }
   }
-
-  private def eventFromBinary(bytes: Array[Byte]) = {
-
-    val buffer = ByteBuffer.wrap(bytes)
-
-    def valueFromBinary(buffer: ByteBuffer) = {
-      val id = buffer.readString
-      val value = buffer.readBytes
-      val version = buffer.readVersion
-      R.Value(id, value, version)
-    }
-
-    def removedFromBinary = {
-      val id = buffer.readString
-      val version = buffer.readVersion
-      R.Event.Removed(id, version)
-    }
-
-    def disconnectedFromBinary = {
-      val id = buffer.readString
-      val timeout = buffer.getLong.millis
-      val version = buffer.readVersion
-      R.Event.Disconnected(id, timeout, version)
-    }
-
-    def syncFromBinary = {
-      val values = buffer.readNel {
-        valueFromBinary(buffer)
-      }
-      R.Event.Sync(values)
-    }
-
-    val event: R.Event = buffer.getInt match {
-      case 0 => R.Event.Updated(valueFromBinary(buffer))
-      case 1 => removedFromBinary
-      case 2 => disconnectedFromBinary
-      case 3 => syncFromBinary
-      case 4 => R.Event.ConHubJoined
-      case x => notSerializable(s"Cannot deserialize event for id $x in ${ getClass.getName }")
-    }
-
-    RemoteEvent(event)
-  }
-
-  private def eventToBinary(x: RemoteEvent) = {
-
-    def updatedToBinary(x: R.Event.Updated) = {
-      val idBytes = x.value.id.getBytes(Utf8)
-      val bytes = x.value.bytes
-      val buffer = ByteBuffer.allocate(IntJ.BYTES + IntJ.BYTES + idBytes.length + IntJ.BYTES + bytes.length + LongJ.BYTES)
-      buffer.putInt(0)
-      buffer.writeBytes(idBytes)
-      buffer.writeBytes(bytes)
-      buffer.putLong(x.value.version.value)
-      buffer
-    }
-
-    def removedToBinary(x: R.Event.Removed) = {
-      val idBytes = x.id.getBytes(Utf8)
-      val buffer = ByteBuffer.allocate(IntJ.BYTES + IntJ.BYTES + idBytes.length + LongJ.BYTES)
-      buffer.putInt(1)
-      buffer.writeBytes(idBytes)
-      buffer.writeVersion(x.version)
-      buffer
-    }
-
-    def disconnectedToBinary(x: R.Event.Disconnected) = {
-      val idBytes = x.id.getBytes(Utf8)
-      val buffer = ByteBuffer.allocate(IntJ.BYTES + IntJ.BYTES + idBytes.length + LongJ.BYTES + LongJ.BYTES)
-      buffer.putInt(2)
-      buffer.writeBytes(idBytes)
-      buffer.putLong(x.timeout.toMillis)
-      buffer.writeVersion(x.version)
-      buffer
-    }
-
-    def syncToBinary(x: RemoteEvent.Event.Sync) = {
-      val bytes = x.values map { value =>
-        val idBytes = value.id.getBytes(Utf8)
-        val bytes = value.bytes
-        val buffer = ByteBuffer.allocate(IntJ.BYTES + idBytes.length + IntJ.BYTES + bytes.length + LongJ.BYTES)
-        buffer.writeBytes(idBytes)
-        buffer.writeBytes(bytes)
-        buffer.writeVersion(value.version)
-        buffer.array()
-      }
-
-      val length = bytes.foldLeft(0) { case (length, bytes) => length + IntJ.BYTES + bytes.length }
-      val buffer = ByteBuffer.allocate(IntJ.BYTES + IntJ.BYTES + length)
-      buffer.putInt(3)
-      buffer.writeNel(bytes)
-      buffer
-    }
-
-    def joinedToBinary = {
-      val buffer = ByteBuffer.allocate(4)
-      buffer.putInt(4)
-      buffer
-    }
-
-    val buffer: ByteBuffer = x.event match {
-      case x: R.Event.Updated      => updatedToBinary(x)
-      case x: R.Event.Removed      => removedToBinary(x)
-      case x: R.Event.Disconnected => disconnectedToBinary(x)
-      case x: R.Event.Sync         => syncToBinary(x)
-      case R.Event.ConHubJoined    => joinedToBinary
-    }
-
-    buffer.array()
-  }
-
-  private def msgsNewToBinary(x: RemoteMsgs) = {
-    val bytes = x.values.map { bytes =>
-      val buffer = ByteBuffer.allocate(IntJ.BYTES + bytes.length)
-      buffer.writeBytes(bytes)
-      buffer.array()
-    }
-    val length = bytes.foldLeft(0) { (length, bytes) =>
-      length + IntJ.BYTES + bytes.length
-    }
-    val buffer = ByteBuffer.allocate(IntJ.BYTES + length)
-    buffer.writeNel(bytes)
-    buffer.array()
-  }
-
-  private def msgsNewFromBinary(bytes: Bytes) = {
-    val buffer = ByteBuffer.wrap(bytes)
-    val msgs = buffer.readNel {
-      buffer.readBytes
-    }
-    RemoteMsgs(msgs)
-  }
-
-  private def notSerializable(msg: String) = throw new NotSerializableException(msg)
-
-  private def illegalArgument(msg: String) = throw new IllegalArgumentException(msg)
 }
 
 object ConHubSerializer {
 
-  implicit class ByteBufferOpsConHub(val self: ByteBuffer) extends AnyVal {
+  private val codecBytes: Codec[ByteVector] = codecCustom(codecs.bytes)
 
-    def readNel[T](f: => T): Nel[T] = {
-      val length = self.getInt()
-      val list = List.fill(length) {
-        val length = self.getInt
-        val position = self.position()
-        val value = f
-        self.position(position + length)
-        value
+  def codecCustom[A](codec: Codec[A], sizeCodec: Codec[Int] = codecs.int32): Codec[A] = new Codec[A] {
+
+    def decode(bits: BitVector) = {
+      for {
+        result <- sizeCodec.decode(bits)
+        size    = result.value
+        _      <- Attempt.guard(size >= 0, Err(s"requires positive size, got $size"))
+        bits    = result.remainder
+        (bits1, remainder) = bits.splitAt(size * ByteJ.SIZE.toLong)
+        result <- codec.decode(bits1)
+      } yield {
+        DecodeResult(result.value, remainder)
       }
-      Nel.unsafe(list)
     }
 
-    def writeNel(bytes: Nel[Array[Byte]]): Unit = {
-      self.putInt(bytes.length)
-      bytes.foreach { bytes => self.writeBytes(bytes) }
+    def encode(value: A) = {
+      for {
+        bits     <- codec.encode(value)
+        size      = bits.size.toInt / ByteJ.SIZE
+        sizeBits <- sizeCodec.encode(size)
+      } yield {
+        sizeBits ++ bits
+      }
     }
 
-    def writeVersion(version: Version): Unit = {
-      val _ = self.putLong(version.value)
+    val sizeBound = SizeBound.atLeast(ByteJ.SIZE.toLong)
+  }
+
+  private def codecsNel[A](codec: Codec[A]): Codec[Nel[A]] = {
+    val codec1 = codecCustom(codec)
+    codecs.listOfN(codecs.int32, codec1).xmap[Nel[A]](Nel.unsafe, _.toList)
+  }
+
+  private val codecMsgs = codecsNel(codecBytes).as[RemoteMsgs]
+
+  private val codecVersion = codecs.int64.as[Version]
+
+  private val codecFiniteDuration = codecs.int64.xmap[FiniteDuration](_.millis, _.toMillis)
+
+  private val codecValue = (codecs.utf8_32 :: codecBytes :: codecVersion).as[R.Value]
+
+  private val codecUpdated = codecValue.as[R.Event.Updated]
+
+  private val codecRemoved = (codecs.utf8_32 :: codecVersion).as[R.Event.Removed]
+
+  private val codecDisconnected = (codecs.utf8_32 :: codecFiniteDuration :: codecVersion).as[R.Event.Disconnected]
+
+  private val codecSync = codecsNel(codecValue).as[RemoteEvent.Event.Sync]
+
+  private def notSerializable(msg: String) = throw new NotSerializableException(msg)
+
+  private def illegalArgument(msg: String) = throw new IllegalArgumentException(msg)
+
+
+  private def eventFromBinary(bits: BitVector) = {
+    val result = for {
+      result <- codecs.int32.decode(bits)
+      bits    = result.remainder
+      result <- result.value match {
+        case 0 => codecUpdated.decode(bits)
+        case 1 => codecRemoved.decode(bits)
+        case 2 => codecDisconnected.decode(bits)
+        case 3 => codecSync.decode(bits)
+        case 4 => Attempt.successful(DecodeResult(R.Event.ConHubJoined, bits))
+        case x => notSerializable(s"Cannot deserialize event for id $x in ${ getClass.getName }")
+      }
+    } yield {
+      RemoteEvent(result.value)
+    }
+    result.require
+  }
+
+  private def eventToBinary(x: RemoteEvent) = {
+
+    def withMark(mark: Int, bits: Attempt[BitVector]) = {
+      for {
+        bits <- bits
+      } yield {
+        val markBits = BitVector.fromInt(mark)
+        (markBits ++ bits).bytes
+      }
     }
 
-    def readVersion: Version = Version(self.getLong)
+    x.event match {
+      case a: R.Event.Updated      => withMark(0, codecUpdated.encode(a))
+      case a: R.Event.Removed      => withMark(1, codecRemoved.encode(a))
+      case a: R.Event.Disconnected => withMark(2, codecDisconnected.encode(a))
+      case a: R.Event.Sync         => withMark(3, codecSync.encode(a))
+      case R.Event.ConHubJoined    => withMark(4, Attempt.successful(BitVector.empty))
+    }
+  }
+
+  private def msgsToBinary(a: RemoteMsgs) = {
+    codecMsgs.encode(a)
+  }
+
+  private def msgsFromBinary(bits: BitVector) = {
+    codecMsgs.decode(bits).require.value
   }
 }

@@ -1,3 +1,5 @@
+import Dependencies._
+
 name := "conhub"
 
 organization := "com.evolutiongaming"
@@ -21,17 +23,22 @@ Test / fork := true
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-cluster" % "2.5.21",
-  "com.evolutiongaming" %% "akka-tools-util" % "3.0.0",
-  "com.evolutiongaming" %% "akka-tools-test" % "3.0.0" % Test,
-  "com.evolutiongaming" %% "config-tools" % "1.0.3",
-  "com.evolutiongaming" %% "future-helper" % "1.0.4",
-  "com.evolutiongaming" %% "sequentially" % "1.0.14",
-  "com.evolutiongaming" %% "akka-serialization" % "0.0.4",
-  "com.evolutiongaming" %% "nel" % "1.3.3",
-  "com.evolutiongaming" %% "safe-actor" % "2.0.4",
-  "com.evolutiongaming" %% "scala-tools" % "3.0.0" % Test,
-  "org.scalatest" %% "scalatest" % "3.0.6" % Test)
+  Akka.actor,
+  Akka.remote,
+  Akka.Cluster,
+  Akka.Testkit,
+  Akka.stream,
+  Akka.protobuf,
+  AkkaTools.util,
+  AkkaTools.test % Test,
+  `config-tools`,
+  `future-helper`,
+  sequentially,
+  `akka-serialization`,
+  nel,
+  `safe-actor`,
+  `scala-tools` % Test,
+  scalatest % Test)
 
 licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT")))
 

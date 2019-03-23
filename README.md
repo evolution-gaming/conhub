@@ -5,5 +5,5 @@
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "conhub" % "0.0.1"
+libraryDependencies += "com.evolutiongaming" %% "conhub" % "1.0.0"
 ```

@@ -1,9 +1,9 @@
 package com.evolutiongaming.conhub
 
-import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 
 import com.evolutiongaming.conhub.ConHubSpecHelper.{Msg, Send}
+import scodec.bits.ByteVector
 
 trait ConHubSpecHelper extends ConnTypes[Connection, ConHubSpecHelper.Id] {
 
@@ -23,8 +23,8 @@ object ConHubSpecHelper {
   def newId(): String = UUID.randomUUID().toString
 
   object ConnectionSerializer extends Serializer.Bin[Connection] {
-    def to(x: Connection): Array[Byte] = x.id getBytes UTF_8
-    def from(bytes: Array[Byte]): Connection = Connection(new String(bytes, UTF_8))
+    def to(x: Connection) = ByteVector.encodeUtf8(x.id).fold(throw _, identity)
+    def from(bytes: ByteVector) = Connection(bytes.decodeUtf8.fold(throw _, identity))
   }
 
 

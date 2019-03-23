@@ -7,21 +7,22 @@ import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
 import com.evolutiongaming.conhub.SequentialMapHelper._
 import com.evolutiongaming.util.Scheduler
 import com.typesafe.scalalogging.LazyLogging
+import scodec.bits.ByteVector
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-trait ConStates[Id, T, M] extends ConnTypes[T, M] {
-  type Result = Future[UpdateResult[T]]
+trait ConStates[Id, A, M] extends ConnTypes[A, M] {
+  type Result = Future[UpdateResult[A]]
 
   def values: collection.Map[Id, C]
 
   def update(id: Id, local: C.Local): Result
 
-  def update(id: Id, version: Version, value: Array[Byte], address: Address): Result
+  def update(id: Id, version: Version, value: ByteVector, address: Address): Result
 
-  def update(id: Id, version: Version, conn: T, address: Address): Result
+  def update(id: Id, version: Version, conn: A, address: Address): Result
 
   def disconnect(id: Id, version: Version, timeout: FiniteDuration, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result
 
@@ -35,16 +36,18 @@ trait ConStates[Id, T, M] extends ConnTypes[T, M] {
 
 object ConStates {
 
-  type Connect[Id, T, M] = ConStates[Id, T, M] => SendEvent[Id, T]
+  type Connect[Id, A, M] = ConStates[Id, A, M] => SendEvent[Id, A]
 
-  def apply[Id, T, M](
-    states: SequentialMap[Id, Conn[T, M]],
+  def apply[Id, A, M](
+    states: SequentialMap[Id, Conn[A, M]],
     checkConsistencyInterval: FiniteDuration,
     scheduler: Scheduler,
-    conSerializer: Serializer.Bin[T],
-    onChanged: Diff[Id, Conn[T, M]] => Future[Unit],
+    conSerializer: Serializer.Bin[A],
+    onChanged: Diff[Id, Conn[A, M]] => Future[Unit],
     now: () => Instant,
-    connect: Connect[Id, T, M])(implicit ec: ExecutionContext): ConStates[Id, T, M] = {
+    connect: Connect[Id, A, M])(implicit
+    ec: ExecutionContext
+  ): ConStates[Id, A, M] = {
 
     val conStates = apply(states, scheduler, conSerializer, onChanged, now, connect)
 
@@ -55,17 +58,17 @@ object ConStates {
     conStates
   }
 
-  def apply[Id, T, M](
-    states: SequentialMap[Id, Conn[T, M]],
+  def apply[Id, A, M](
+    states: SequentialMap[Id, Conn[A, M]],
     scheduler: Scheduler,
-    conSerializer: Serializer.Bin[T],
-    onChanged: Diff[Id, Conn[T, M]] => Future[Unit],
+    conSerializer: Serializer.Bin[A],
+    onChanged: Diff[Id, Conn[A, M]] => Future[Unit],
     now: () => Instant,
-    connect: Connect[Id, T, M])(implicit ec: ExecutionContext): ConStates[Id, T, M] = {
+    connect: Connect[Id, A, M])(implicit ec: ExecutionContext): ConStates[Id, A, M] = {
 
-    new ConStates[Id, T, M] with LazyLogging {
+    new ConStates[Id, A, M] with LazyLogging {
 
-      private val send: SendEvent[Id, T] = connect(this)
+      private val send: SendEvent[Id, A] = connect(this)
 
       def values = states.values
 
@@ -75,14 +78,14 @@ object ConStates {
         }
       }
 
-      def update(id: Id, version: Version, value: Array[Byte], address: Address): Result = {
+      def update(id: Id, version: Version, value: ByteVector, address: Address): Result = {
         updatePf(id, Some(version), s"update $address") { case before =>
           val con = conSerializer.from(value)
           update(id, Conn.Remote(con, address, version), before, local = false)
         }
       }
 
-      def update(id: Id, version: Version, con: T, address: Address): Result = {
+      def update(id: Id, version: Version, con: A, address: Address): Result = {
         updatePf(id, Some(version), s"update $address") { case before =>
           update(id, Conn.Remote(con, address, version), before, local = false)
         }
@@ -227,7 +230,7 @@ object ConStates {
     }
   }
 
-  final case class Diff[Id, +T](id: Id, before: Option[T], after: Option[T])
+  final case class Diff[Id, +A](id: Id, before: Option[A], after: Option[A])
 
 
   sealed trait Ctx

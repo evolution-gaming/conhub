@@ -2,7 +2,7 @@ package com.evolutiongaming.conhub
 
 import scala.concurrent.Future
 
-trait SearchEngine[Id, T, M, L] extends ConnTypes[T, M] {
+trait SearchEngine[Id, A, M, L] extends ConnTypes[A, M] {
 
   type Cons = collection.Map[Id, C]
 

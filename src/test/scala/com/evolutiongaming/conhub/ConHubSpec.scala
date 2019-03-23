@@ -3,8 +3,10 @@ package com.evolutiongaming.conhub
 import akka.actor.Address
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.Sequentially
+import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.nel.Nel
 import org.scalatest.WordSpec
+import scodec.bits.ByteVector
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -47,10 +49,10 @@ class ConHubSpec extends WordSpec {
     }
 
     val conStates = new ConStates[Void, Void, Void] {
-      private val result = Future.successful(UpdateResult.empty[Void])
+      private val result = UpdateResult.empty[Void].future
       def values: collection.Map[Void, C] = Map.empty
       def update(id: Void, local: C.Local): Result = result
-      def update(id: Void, version: Version, value: Array[Byte], address: Address): Result = result
+      def update(id: Void, version: Version, value: ByteVector, address: Address): Result = result
       def update(id: Void, version: Version, conn: Void, address: Address): Result = result
       def disconnect(id: Void, version: Version, timeout: FiniteDuration, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result = result
       def remove(id: Void, version: Version, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result = result

@@ -17,14 +17,14 @@ object ConHubImpl extends LazyLogging {
 
   type Connect[Id, T, L, M] = OnMsgs[M] => (SearchEngine[Id, T, M, L], ConStates[Id, T, M], SendMsgs[Id, T, M])
 
-  def apply[Id, T, L, K, M](
+  def apply[Id, A, L, K, M](
     sequentially: Sequentially[K],
     msgOps: ConHubImpl.MsgOps[M, L, K],
-    metrics: ConMetrics[Id, T, M],
-    connect: Connect[Id, T, L, M])(implicit
-    ec: ExecutionContext): ConHub[Id, T, M, L] = {
+    metrics: ConMetrics[Id, A, M],
+    connect: Connect[Id, A, L, M])(implicit
+    ec: ExecutionContext): ConHub[Id, A, M, L] = {
 
-    new ConHub[Id, T, M, L] {
+    new ConHub[Id, A, M, L] {
 
       private val initialized = new AtomicBoolean(false)
 
@@ -62,7 +62,7 @@ object ConHubImpl extends LazyLogging {
         }
 
         msg.key match {
-          case None => Future.successful(execute)
+          case None      => execute.future
           case Some(key) => sequentially(key) { execute }
         }
       }
@@ -91,7 +91,7 @@ object ConHubImpl extends LazyLogging {
       }
 
 
-      def update(id: Id, version: Version, con: T, send: Conn.Send[M]): Result = {
+      def update(id: Id, version: Version, con: A, send: Conn.Send[M]): Result = {
         conStates.update(id, Conn.Local(con, send, version))
       }
 
@@ -107,10 +107,10 @@ object ConHubImpl extends LazyLogging {
         cons collect { case c: C.Remote => c.address }
       }
 
-      private def sendManyToLocal(msgsAndConnections: Nel[(M, Iterable[Conn[T, M]])], remote: Boolean) = {
+      private def sendManyToLocal(msgsAndConnections: Nel[(M, Iterable[Conn[A, M]])], remote: Boolean) = {
         Future.traverseSequentially(msgsAndConnections.toList) { case (msg, connections) =>
           msg.key match {
-            case None => Future.successful(sendMsgs.local(msg, connections, remote))
+            case None => sendMsgs.local(msg, connections, remote).future
             case Some(key) => sequentially(key) { sendMsgs.local(msg, connections, remote) }
           }
         }
@@ -129,8 +129,8 @@ object ConHubImpl extends LazyLogging {
   }
 
 
-  trait MsgOps[T, L, K] {
-    def lookup(x: T): L
-    def key(x: T): Option[K]
+  trait MsgOps[A, L, K] {
+    def lookup(x: A): L
+    def key(x: A): Option[K]
   }
 }

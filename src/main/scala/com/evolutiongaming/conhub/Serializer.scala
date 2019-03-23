@@ -1,5 +1,7 @@
 package com.evolutiongaming.conhub
 
+import scodec.bits.ByteVector
+
 trait Serializer[A, B] {
 
   def to(a: A): B
@@ -9,13 +11,13 @@ trait Serializer[A, B] {
 
 object Serializer {
 
-  type Bin[T] = Serializer[T, Array[Byte]]
+  type Bin[A] = Serializer[A, ByteVector]
 
-  type Str[T] = Serializer[T, String]
+  type Str[A] = Serializer[A, String]
 
 
-  def identity[T]: Serializer[T, T] = new Serializer[T, T] {
-    def to(a: T): T = a
-    def from(b: T): T = b
+  def identity[A]: Serializer[A, A] = new Serializer[A, A] {
+    def to(a: A): A = a
+    def from(b: A): A = b
   }
 }

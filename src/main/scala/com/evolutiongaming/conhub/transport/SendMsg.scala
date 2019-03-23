@@ -10,20 +10,20 @@ import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
-trait SendMsg[-T] {
+trait SendMsg[-A] {
 
-  def apply(msg: T, addresses: Iterable[Address]): Unit
+  def apply(msg: A, addresses: Iterable[Address]): Unit
 
-  def map[TT](f: TT => T): SendMsg[TT] = SendMsg(this, f)
+  def map[B](f: B => A): SendMsg[B] = SendMsg(this, f)
 }
 
 object SendMsg {
 
   val RetryInterval: FiniteDuration = 300.millis
 
-  sealed trait Tell[T] {
-    def apply(msg: T, to: ActorRef, from: ActorRef): Unit = to.tell(msg, from)
-    def apply(msg: T, to: ActorSelection, from: ActorRef): Unit = to.tell(msg, from)
+  sealed trait Tell[A] {
+    def apply(msg: A, to: ActorRef, from: ActorRef): Unit = to.tell(msg, from)
+    def apply(msg: A, to: ActorSelection, from: ActorRef): Unit = to.tell(msg, from)
   }
 
   object Tell {
@@ -32,14 +32,15 @@ object SendMsg {
   }
 
 
-  def apply[T](
+  def apply[A](
     name: String,
-    receive: ReceiveMsg[T],
+    receive: ReceiveMsg[A],
     factory: ActorRefFactory,
     role: String,
     retryInterval: FiniteDuration = RetryInterval)(implicit
-    tag: ClassTag[T],
-    system: ActorSystem): SendMsg[T] = {
+    tag: ClassTag[A],
+    system: ActorSystem
+  ): SendMsg[A] = {
 
     def validate(cluster: Cluster): Unit =
       if (!cluster.selfRoles.contains(role))
@@ -55,14 +56,17 @@ object SendMsg {
     }
   }
 
-  private def apply[T](
+  private def apply[A](
     name: String,
-    receive: ReceiveMsg[T],
+    receive: ReceiveMsg[A],
     factory: ActorRefFactory,
     retryInterval: FiniteDuration,
     cluster: Cluster,
     role: String,
-    log: ActorLog)(implicit tag: ClassTag[T], system: ActorSystem): SendMsg[T] = {
+    log: ActorLog)(implicit
+    tag: ClassTag[A],
+    system: ActorSystem
+  ): SendMsg[A] = {
 
     final case class Retry(address: Address)
 
@@ -82,7 +86,7 @@ object SendMsg {
     }
 
 
-    implicit val tell = new Tell[T] {}
+    implicit val tell = new Tell[A] {}
 
     var state = Map.empty[Address, Channel]
 
@@ -102,7 +106,7 @@ object SendMsg {
       }
     }
 
-    def onMsg(msg: T, address: Address): Unit = {
+    def onMsg(msg: A, address: Address): Unit = {
       if (address.hasGlobalScope) {
         log.debug(s"receive $msg from $address")
         safe(s"receive failed for $msg from $address") {
@@ -255,9 +259,9 @@ object SendMsg {
     val ref = factory.actorOf(props, name)
     cluster.subscribe(ref, classOf[MemberEvent])
 
-    new SendMsg[T] {
+    new SendMsg[A] {
 
-      def apply(msg: T, addresses: Iterable[Address]): Unit = {
+      def apply(msg: A, addresses: Iterable[Address]): Unit = {
 
         def broadcast() = {
           log.debug(s"broadcast $msg")
@@ -297,7 +301,7 @@ object SendMsg {
     def apply(msg: Any, addresses: Iterable[Address]): Unit = {}
   }
 
-  def empty[T]: SendMsg[T] = Empty
+  def empty[A]: SendMsg[A] = Empty
 
 
   implicit class StatusOps(val self: CurrentClusterState) extends AnyVal {
@@ -329,7 +333,7 @@ object SendMsg {
       system.actorSelection(remote)
     }
 
-    def tell[T](address: Address, msg: T)(implicit system: ActorSystem, tell: Tell[T]): Unit = {
+    def tell[A](address: Address, msg: A)(implicit system: ActorSystem, tell: Tell[A]): Unit = {
       val remote = self.remote(address)
       tell(msg, to = remote, from = self)
     }
@@ -337,15 +341,15 @@ object SendMsg {
 }
 
 
-trait ReceiveMsg[-T] {
+trait ReceiveMsg[-A] {
 
   def connected(address: Address): Unit
 
   def disconnected(address: Address): Unit
 
-  def apply(msg: T, address: Address): Unit
+  def apply(msg: A, address: Address): Unit
 
-  def map[TT](f: TT => T): ReceiveMsg[TT] = ReceiveMsg(this, f)
+  def map[B](f: B => A): ReceiveMsg[B] = ReceiveMsg(this, f)
 }
 
 object ReceiveMsg {
@@ -356,14 +360,14 @@ object ReceiveMsg {
     def apply(msg: Any, address: Address): Unit = {}
   }
 
-  def empty[T]: ReceiveMsg[T] = Empty
+  def empty[A]: ReceiveMsg[A] = Empty
 
 
-  def apply[T](onMsg: T => Unit): ReceiveMsg[T] = {
-    new ReceiveMsg[T] {
+  def apply[A](onMsg: A => Unit): ReceiveMsg[A] = {
+    new ReceiveMsg[A] {
       def connected(address: Address): Unit = {}
       def disconnected(address: Address): Unit = {}
-      def apply(msg: T, address: Address): Unit = onMsg(msg)
+      def apply(msg: A, address: Address): Unit = onMsg(msg)
     }
   }
 
