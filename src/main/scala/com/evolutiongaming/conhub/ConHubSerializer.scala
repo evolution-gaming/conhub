@@ -1,13 +1,12 @@
 package com.evolutiongaming.conhub
 
 import java.io.NotSerializableException
-import java.lang.{Byte => ByteJ}
 
 import akka.serialization.SerializerWithStringManifest
 import com.evolutiongaming.conhub.{RemoteEvent => R}
 import com.evolutiongaming.nel.Nel
 import scodec.bits.{BitVector, ByteVector}
-import scodec.{Attempt, Codec, DecodeResult, Err, SizeBound, codecs}
+import scodec.{Attempt, Codec, DecodeResult, codecs}
 
 import scala.concurrent.duration._
 
@@ -46,38 +45,10 @@ class ConHubSerializer extends SerializerWithStringManifest {
 
 object ConHubSerializer {
 
-  private val codecBytes: Codec[ByteVector] = codecCustom(codecs.bytes)
+  val codecBytes: Codec[ByteVector] = codecs.variableSizeBytes(codecs.int32, codecs.bytes)
 
-  def codecCustom[A](codec: Codec[A], sizeCodec: Codec[Int] = codecs.int32): Codec[A] = new Codec[A] {
-
-    def decode(bits: BitVector) = {
-      for {
-        result <- sizeCodec.decode(bits)
-        size    = result.value
-        _      <- Attempt.guard(size >= 0, Err(s"requires positive size, got $size"))
-        bits    = result.remainder
-        (bits1, remainder) = bits.splitAt(size * ByteJ.SIZE.toLong)
-        result <- codec.decode(bits1)
-      } yield {
-        DecodeResult(result.value, remainder)
-      }
-    }
-
-    def encode(value: A) = {
-      for {
-        bits     <- codec.encode(value)
-        size      = bits.size.toInt / ByteJ.SIZE
-        sizeBits <- sizeCodec.encode(size)
-      } yield {
-        sizeBits ++ bits
-      }
-    }
-
-    val sizeBound = SizeBound.atLeast(ByteJ.SIZE.toLong)
-  }
-
-  private def codecsNel[A](codec: Codec[A]): Codec[Nel[A]] = {
-    val codec1 = codecCustom(codec)
+  def codecsNel[A](codec: Codec[A]): Codec[Nel[A]] = {
+    val codec1 = codecs.variableSizeBytes(codecs.int32, codec)
     codecs.listOfN(codecs.int32, codec1).xmap[Nel[A]](Nel.unsafe, _.toList)
   }
 
