@@ -70,10 +70,10 @@ class ConHubSerializerSpec extends FunSuite with Matchers {
 object ConHubSerializerSpec {
 
   implicit class ByteVectorOps(val self: ByteVector) extends AnyVal {
-    def decodeStr: String = self.decodeUtf8.right.get
+    def decodeStr: String = self.decodeUtf8.toTry.get
   }
 
   implicit class StrOps(val self: String) extends AnyVal {
-    def encodeStr: ByteVector = ByteVector.encodeUtf8(self).right.get
+    def encodeStr: ByteVector = ByteVector.encodeUtf8(self).toTry.get
   }
 }

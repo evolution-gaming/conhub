@@ -5,7 +5,6 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.{Cluster, Member, MemberStatus}
 import com.evolutiongaming.safeakka.actor.ActorLog
 
-import scala.compat.Platform
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
@@ -162,7 +161,7 @@ object SendMsg {
           val address = member.address
           log.debug(s"receive MemberUp for $address")
           if (address != cluster.selfAddress && !(state contains address) && member.roles.contains(role)) {
-            val id = Platform.currentTime
+            val id = System.currentTimeMillis()
             identify(address, id)
             val channel = Channel.Connecting(id)
             state = state + (address -> channel)
@@ -191,7 +190,7 @@ object SendMsg {
       def onClusterState(clusterState: CurrentClusterState): Unit = {
         val addresses = clusterState.addresses(role)
         log.debug(s"receive CurrentClusterState ${ addresses mkString "," }")
-        val now = Platform.currentTime
+        val now = System.currentTimeMillis()
         val result = for {
           (address, idx) <- addresses.zipWithIndex
           if address != cluster.selfAddress

@@ -118,7 +118,7 @@ object ReceiveEvent {
 
         for {
           ids <- Future.sequence(ids)
-          id <- conStates.values.keySet -- ids
+          id <- conStates.values.keySet.toSet -- ids
         } {
           conStates.sync(id)
         }
