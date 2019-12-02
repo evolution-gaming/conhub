@@ -9,7 +9,7 @@ object Dependencies {
   val nel                  = "com.evolutiongaming" %% "nel"                % "1.3.4"
   val `safe-actor`         = "com.evolutiongaming" %% "safe-actor"         % "2.0.7"
   val `scala-tools`        = "com.evolutiongaming" %% "scala-tools"        % "3.0.4"
-  val scalatest            = "org.scalatest"       %% "scalatest"          % "3.0.8"
+  val scalatest            = "org.scalatest"       %% "scalatest"          % "3.1.0"
 
   object Akka {
     private val version = "2.5.25"

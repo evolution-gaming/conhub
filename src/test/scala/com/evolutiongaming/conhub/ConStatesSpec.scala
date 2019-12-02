@@ -12,12 +12,13 @@ import com.evolutiongaming.conhub.transport.SendMsg
 import com.evolutiongaming.conhub.{RemoteEvent => R}
 import com.evolutiongaming.test.ActorSpec
 import com.evolutiongaming.util.Scheduler
-import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ConStatesSpec extends WordSpec with ActorSpec with Matchers with ConHubSpecHelper {
+class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHubSpecHelper {
 
   "ConStates" should {
 

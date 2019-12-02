@@ -5,13 +5,13 @@ import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.Sequentially
 import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.nel.Nel
-import org.scalatest.WordSpec
 import scodec.bits.ByteVector
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import org.scalatest.wordspec.AnyWordSpec
 
-class ConHubSpec extends WordSpec {
+class ConHubSpec extends AnyWordSpec {
 
   "ConHub" should {
 
