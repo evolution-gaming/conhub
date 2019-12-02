@@ -3,9 +3,10 @@ package com.evolutiongaming.conhub
 import com.evolutiongaming.conhub.transport.{ReceiveMsg, SendMsg}
 import com.evolutiongaming.test.ActorSpec
 import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class SendMsgSpec extends WordSpec with ActorSpec with Matchers {
+class SendMsgSpec extends AnyWordSpec with ActorSpec with Matchers {
 
   override def config: Config = ConfigFactory.load("akka-cluster-test.conf")
 
