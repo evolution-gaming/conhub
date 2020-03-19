@@ -16,7 +16,7 @@ bintrayOrganization := Some("evolutiongaming")
 
 scalaVersion := crossScalaVersions.value.head
 
-crossScalaVersions := Seq("2.13.0", "2.12.9")
+crossScalaVersions := Seq("2.13.1", "2.12.11")
 
 Test / fork := true
 
@@ -25,15 +25,15 @@ resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 libraryDependencies ++= Seq(
   Akka.actor,
   Akka.remote,
-  Akka.Cluster,
-  Akka.Testkit,
+  Akka.cluster,
+  Akka.testkit,
   Akka.stream,
   Akka.protobuf,
-  AkkaTools.util,
   AkkaTools.test % Test,
   `config-tools`,
   `future-helper`,
   sequentially,
+  `scala-logging`,
   `akka-serialization`,
   nel,
   `safe-actor`,

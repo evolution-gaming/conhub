@@ -11,7 +11,6 @@ import com.evolutiongaming.conhub.ConStates.{Ctx, Diff}
 import com.evolutiongaming.conhub.transport.SendMsg
 import com.evolutiongaming.conhub.{RemoteEvent => R}
 import com.evolutiongaming.test.ActorSpec
-import com.evolutiongaming.util.Scheduler
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -200,7 +199,7 @@ class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHub
     val conStates = ConStates(
       states,
       1.minute,
-      Scheduler(system),
+      system.scheduler,
       ConnectionSerializer,
       onStateChanged,
       () => instant,

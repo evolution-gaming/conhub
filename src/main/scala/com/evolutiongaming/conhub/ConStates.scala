@@ -2,10 +2,9 @@ package com.evolutiongaming.conhub
 
 import java.time.Instant
 
-import akka.actor.Address
+import akka.actor.{Address, Scheduler}
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
 import com.evolutiongaming.conhub.SequentialMapHelper._
-import com.evolutiongaming.util.Scheduler
 import com.typesafe.scalalogging.LazyLogging
 import scodec.bits.ByteVector
 
@@ -51,8 +50,8 @@ object ConStates {
 
     val conStates = apply(states, scheduler, conSerializer, onChanged, now, connect)
 
-    scheduler.schedule(checkConsistencyInterval, checkConsistencyInterval) {
-      for {id <- states.values.keys} conStates.checkConsistency(id)
+    scheduler.scheduleWithFixedDelay(checkConsistencyInterval, checkConsistencyInterval) {
+      () => for {id <- states.values.keys} conStates.checkConsistency(id)
     }
 
     conStates
@@ -102,7 +101,7 @@ object ConStates {
 
               val timeoutFinal = if (local) timeout else (timeout * 1.2).asInstanceOf[FiniteDuration]
 
-              val _ = scheduler.scheduleOnce(timeoutFinal, runOnShutdown = false) {
+              val _ = scheduler.scheduleOnce(timeoutFinal) {
                 val _ = updatePf(id, Some(version), "timeout") { case Some(before: C.Disconnected) if before.timestamp == timestamp =>
                   remove(id, version, local = local)
                 }
