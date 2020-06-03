@@ -11,6 +11,7 @@ import scodec.bits.ByteVector
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 trait ConStates[Id, A, M] extends ConnTypes[A, M] {
   type Result = Future[UpdateResult[A]]
@@ -170,8 +171,10 @@ object ConStates {
                 val future = try onChanged(diff) catch {
                   case NonFatal(x) => Future.failed(x)
                 }
-                future.failed.foreach { failure =>
-                  logger.error(s"onChanged failed for $id $failure", failure)
+
+                future.onComplete {
+                  case Success(_)     =>
+                  case Failure(error) => logger.error(s"onChanged failed for $id $error", error)
                 }
                 result(true, future)
               } else {
@@ -191,8 +194,9 @@ object ConStates {
           (directive, run)
         }
 
-        future.failed.foreach { failure =>
-          logger.error(s"connection $id update failed $failure", failure)
+        future.onComplete {
+          case Success(_)     =>
+          case Failure(error) => logger.error(s"connection $id update failed $error", error)
         }
 
         for {
