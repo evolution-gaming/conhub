@@ -13,7 +13,7 @@ object Dependencies {
   val `scala-logging`      = "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.2"
 
   object Akka {
-    private val version = "2.6.4"
+    private val version = "2.6.8"
     val actor    = "com.typesafe.akka" %% "akka-actor"    % version
     val remote   = "com.typesafe.akka" %% "akka-remote"   % version
     val cluster  = "com.typesafe.akka" %% "akka-cluster"  % version

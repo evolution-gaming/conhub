@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
   Akka.actor,
   Akka.remote,
   Akka.cluster,
-  Akka.testkit,
+  Akka.testkit % Test,
   Akka.stream,
   Akka.protobuf,
   AkkaTools.test % Test,
