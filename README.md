@@ -5,7 +5,7 @@
 [![version](https://api.bintray.com/packages/evolutiongaming/maven/conhub/images/download.svg)](https://bintray.com/evolutiongaming/maven/conhub/_latestVersion)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT)
 
-ConHub is a distributed registry used to manage websocket connections on the different nodes of an appllication
+ConHub is a distributed registry used to manage websocket connections on the different nodes of an appllication.
 It enables you to send serializable message to one or many connections hiding away complexity of distributed system. 
 In short: user provides `lookup` criteria and a `message`, there after `conHub` does the job routing message to physical instances of a matched connections
 
