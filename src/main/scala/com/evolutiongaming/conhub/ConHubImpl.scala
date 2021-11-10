@@ -29,15 +29,18 @@ object ConHubImpl extends LazyLogging {
       private val initialized = new AtomicBoolean(false)
 
       val onMsgs: OnMsgs[M] = msgs => {
-        val msgsAndCons = for {
-          msg <- msgs.toList
-          cons = if(initialized.get()) this.cons(msg.lookup, localCall = false) else Iterable.empty
-          if cons.nonEmpty
-        } yield (msg, cons)
 
-        for {
-          msgsAndCons <- Nel.opt(msgsAndCons)
-        } sendManyToLocal(msgsAndCons, remote = true)
+        if (initialized.get()) {
+          val msgsAndCons = for {
+            msg <- msgs.toList
+            cons = this.cons(msg.lookup, localCall = false)
+            if cons.nonEmpty
+          } yield (msg, cons)
+
+          for {
+            msgsAndCons <- Nel.opt(msgsAndCons)
+          } sendManyToLocal(msgsAndCons, remote = true)
+        }
       }
 
       val (searchEngine, conStates, sendMsgs) = connect(onMsgs)
