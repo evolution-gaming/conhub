@@ -17,27 +17,61 @@ object ConHubImpl extends LazyLogging {
 
   type Connect[Id, T, L, M] = OnMsgs[M] => (SearchEngine[Id, T, M, L], ConStates[Id, T, M], SendMsgs[Id, T, M])
 
+  @deprecated("use another `apply` with separate sequentially", "1.2.0")
   def apply[Id, A, L, K, M](
     sequentially: Sequentially[K],
     msgOps: ConHubImpl.MsgOps[M, L, K],
     metrics: ConMetrics[Id, A, M],
     connect: Connect[Id, A, L, M])(implicit
-    ec: ExecutionContext): ConHub[Id, A, M, L] = {
+    ec: ExecutionContext
+  ): ConHub[Id, A, M, L] = {
+    apply(
+      sequentiallyLocal = sequentially,
+      sequentiallyRemote = sequentially,
+      msgOps,
+      metrics,
+      connect,
+      ec)
+  }
+
+  def apply[Id, A, L, K, M](
+    sequentiallyLocal: Sequentially[K],
+    sequentiallyRemote: Sequentially[K],
+    msgOps: ConHubImpl.MsgOps[M, L, K],
+    metrics: ConMetrics[Id, A, M],
+    connect: Connect[Id, A, L, M],
+    executor: ExecutionContext
+  ): ConHub[Id, A, M, L] = {
+
+    implicit val executor1 = executor
 
     new ConHub[Id, A, M, L] {
 
       private val initialized = new AtomicBoolean(false)
 
       val onMsgs: OnMsgs[M] = msgs => {
-        val msgsAndCons = for {
-          msg <- msgs.toList
-          cons = if(initialized.get()) this.cons(msg.lookup, localCall = false) else Iterable.empty
-          if cons.nonEmpty
-        } yield (msg, cons)
 
-        for {
-          msgsAndCons <- Nel.opt(msgsAndCons)
-        } sendManyToLocal(msgsAndCons, remote = true)
+        if (initialized.get()) {
+          // there is no silver bullet:
+          // 1. either we fix race condition within batch
+          // 2. or fix race condition between keys from different batches
+          // I prefer second…
+
+          // Future.traverseSequentially(msgs.toList) { msg =>
+          msgs.foreach { msg =>
+            def send() = {
+              val cons = this.cons(msg.lookup, localCall = false)
+              if (cons.nonEmpty) {
+                sendMsgs.local(msg, cons, remote = true)
+              }
+            }
+
+            msg.key match {
+              case None      => Future { send() } // to not block current actor
+              case Some(key) => sequentiallyRemote(key) { send() }
+            }
+          }
+        }
       }
 
       val (searchEngine, conStates, sendMsgs) = connect(onMsgs)
@@ -63,7 +97,7 @@ object ConHubImpl extends LazyLogging {
 
         msg.key match {
           case None      => execute.future
-          case Some(key) => sequentially(key) { execute }
+          case Some(key) => sequentiallyLocal(key) { execute }
         }
       }
 
@@ -77,8 +111,17 @@ object ConHubImpl extends LazyLogging {
         } yield (msg, cons)
 
         val future = Nel.opt(msgsAndCons) match {
-          case Some(msgsAndCons) => sendManyToLocal(msgsAndCons, remote = false)
-          case None              => Future.unit
+          case Some(msgsAndCons) =>
+            Future.traverseSequentially(msgsAndCons.toList) { case (msg, connections) =>
+              def send() = sendMsgs.local(msg, connections, remote = false)
+
+              msg.key match {
+                case None      => send().future
+                case Some(key) => sequentiallyLocal(key) { send() }
+              }
+            }
+          case None              =>
+            Future.unit
         }
 
         val remoteMsgs = for {
@@ -105,15 +148,6 @@ object ConHubImpl extends LazyLogging {
 
       private def addresses(cons: Iterable[C]) = {
         cons collect { case c: C.Remote => c.address }
-      }
-
-      private def sendManyToLocal(msgsAndConnections: Nel[(M, Iterable[Conn[A, M]])], remote: Boolean) = {
-        Future.traverseSequentially(msgsAndConnections.toList) { case (msg, connections) =>
-          msg.key match {
-            case None => sendMsgs.local(msg, connections, remote).future
-            case Some(key) => sequentially(key) { sendMsgs.local(msg, connections, remote) }
-          }
-        }
       }
 
       private implicit class MsgOpsProxy(self: M) {
