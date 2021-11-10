@@ -68,8 +68,10 @@ class ConHubSpec extends AnyWordSpec {
 
     def conHub = ConHubImpl[Void, Void, Void, Void, Void](
       Sequentially.now[Void],
+      Sequentially.now[Void],
       MsgOps,
       EmptyConMetrics,
-      connect)(CurrentThreadExecutionContext)
+      connect,
+      CurrentThreadExecutionContext)
   }
 }
