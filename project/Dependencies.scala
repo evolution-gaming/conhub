@@ -10,7 +10,7 @@ object Dependencies {
   val `safe-actor`         = "com.evolutiongaming"        %% "safe-actor"         % "3.0.0"
   val `scala-tools`        = "com.evolutiongaming"        %% "scala-tools"        % "3.0.5"
   val scalatest            = "org.scalatest"              %% "scalatest"          % "3.2.10"
-  val `scala-logging`      = "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.4"
+  val `scala-logging`      = "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.5"
 
   object Akka {
     private val version = "2.6.8"
