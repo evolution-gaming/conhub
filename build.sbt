@@ -14,7 +14,7 @@ organizationHomepage := Some(url("http://evolution.com"))
 
 scalaVersion := crossScalaVersions.value.head
 
-crossScalaVersions := Seq("2.13.7", "2.12.15")
+crossScalaVersions := Seq("2.13.7", "2.12.16")
 
 Test / fork := true
 
