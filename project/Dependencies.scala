@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   val `config-tools`       = "com.evolutiongaming"        %% "config-tools"       % "1.0.4"
-  val `future-helper`      = "com.evolutiongaming"        %% "future-helper"      % "1.0.6"
+  val `future-helper`      = "com.evolutiongaming"        %% "future-helper"      % "1.0.7"
   val sequentially         = "com.evolutiongaming"        %% "sequentially"       % "1.1.4"
   val `akka-serialization` = "com.evolutiongaming"        %% "akka-serialization" % "1.0.4"
   val nel                  = "com.evolutiongaming"        %% "nel"                % "1.3.4"
