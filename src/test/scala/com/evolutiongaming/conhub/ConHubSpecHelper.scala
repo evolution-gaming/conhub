@@ -17,16 +17,15 @@ trait ConHubSpecHelper extends ConnTypes[Connection, ConHubSpecHelper.Id] {
 }
 
 object ConHubSpecHelper {
-  type Id = String
+  type Id  = String
   type Msg = String
 
   def newId(): String = UUID.randomUUID().toString
 
   object ConnectionSerializer extends Serializer.Bin[Connection] {
-    def to(x: Connection) = ByteVector.encodeUtf8(x.id).fold(throw _, identity)
+    def to(x: Connection)       = ByteVector.encodeUtf8(x.id).fold(throw _, identity)
     def from(bytes: ByteVector) = Connection(bytes.decodeUtf8.fold(throw _, identity))
   }
-
 
   class Send extends Conn.Send[Msg] {
     def apply(x: MsgAndRemote[Msg]): Unit = ()

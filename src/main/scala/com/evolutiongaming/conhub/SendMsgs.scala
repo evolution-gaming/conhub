@@ -32,14 +32,13 @@ object SendMsgs {
 
       def local(msg: M, cons: Iterable[C], remote: Boolean): Unit = {
         val msgAndRemote = MsgAndRemote(msg, remote)
-        for {con <- cons} con match {
+        for { con <- cons } con match {
           case x: C.Local => x.send(msgAndRemote)
           case _          =>
         }
       }
     }
   }
-
 
   def empty[Id, T, M]: SendMsgs[Id, T, M] = new SendMsgs[Id, T, M] {
     def apply(msg: M, con: C.Connected): Unit = {}

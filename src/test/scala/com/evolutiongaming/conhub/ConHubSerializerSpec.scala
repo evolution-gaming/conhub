@@ -16,9 +16,9 @@ class ConHubSerializerSpec extends AnyFunSuite with Matchers {
   private val version = Version.Zero
 
   test("toBinary & fromBinary for Event.Updated") {
-    val value = "value".encodeStr
+    val value    = "value".encodeStr
     val expected = R.Event.Updated(R.Value("id", value, version))
-    val actual = toAndFromBinaryEvent(expected)
+    val actual   = toAndFromBinaryEvent(expected)
     actual.value.bytes.decodeStr shouldEqual "value"
     actual.copy(value = actual.value.copy(bytes = value)) shouldEqual expected
   }
@@ -34,9 +34,9 @@ class ConHubSerializerSpec extends AnyFunSuite with Matchers {
   }
 
   test("toBinary & fromBinary for Event.Sync") {
-    val values = Nel(1, 2, 3) map { x => x.toString }
+    val values   = Nel(1, 2, 3) map { x => x.toString }
     val expected = R.Event.Sync(values map { value => R.Value(value, value.encodeStr, version) })
-    val actual = toAndFromBinaryEvent(expected)
+    val actual   = toAndFromBinaryEvent(expected)
     actual.values.foreach { value =>
       value.bytes.decodeStr shouldEqual value.id
     }
@@ -48,21 +48,21 @@ class ConHubSerializerSpec extends AnyFunSuite with Matchers {
   }
 
   test("toBinary & fromBinary for Msgs ") {
-    val msgs = Nel("msg1", "msg2")
+    val msgs       = Nel("msg1", "msg2")
     val remoteMsgs = RemoteMsgs(msgs.map { _.encodeStr })
-    val actual = toAndFromBinary(remoteMsgs)
+    val actual     = toAndFromBinary(remoteMsgs)
     actual.values.map { _.decodeStr } shouldEqual msgs
   }
 
   private def toAndFromBinaryEvent[A <: R.Event](event: A): A = {
-    val remoteEvent = R(event)
+    val remoteEvent  = R(event)
     val deserialized = toAndFromBinary(remoteEvent)
     deserialized.event.asInstanceOf[A]
   }
 
   private def toAndFromBinary[A <: AnyRef](value: A): A = {
-    val manifest = serializer.manifest(value)
-    val bytes = serializer.toBinary(value)
+    val manifest     = serializer.manifest(value)
+    val bytes        = serializer.toBinary(value)
     val deserialized = serializer.fromBinary(bytes, manifest)
     deserialized.asInstanceOf[A]
   }

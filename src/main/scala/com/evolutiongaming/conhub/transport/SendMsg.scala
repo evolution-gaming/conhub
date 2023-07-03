@@ -21,7 +21,7 @@ object SendMsg {
   val RetryInterval: FiniteDuration = 300.millis
 
   sealed trait Tell[A] {
-    def apply(msg: A, to: ActorRef, from: ActorRef): Unit = to.tell(msg, from)
+    def apply(msg: A, to: ActorRef, from: ActorRef): Unit       = to.tell(msg, from)
     def apply(msg: A, to: ActorSelection, from: ActorRef): Unit = to.tell(msg, from)
   }
 
@@ -30,20 +30,17 @@ object SendMsg {
     implicit case object ActorIdentityTell extends Tell[ActorIdentity]
   }
 
-
   def apply[A](
     name: String,
     receive: ReceiveMsg[A],
     factory: ActorRefFactory,
     role: String,
-    retryInterval: FiniteDuration = RetryInterval)(implicit
-    tag: ClassTag[A],
-    system: ActorSystem
-  ): SendMsg[A] = {
+    retryInterval: FiniteDuration = RetryInterval
+  )(implicit tag: ClassTag[A], system: ActorSystem): SendMsg[A] = {
 
     def validate(cluster: Cluster): Unit =
       if (!cluster.selfRoles.contains(role))
-        sys.error(s"Current node doesn't contain conhub's role ${ role }")
+        sys.error(s"Current node doesn't contain conhub's role ${role}")
 
     if (system.hasExtension(Cluster)) {
       val cluster = Cluster(system)
@@ -62,13 +59,10 @@ object SendMsg {
     retryInterval: FiniteDuration,
     cluster: Cluster,
     role: String,
-    log: ActorLog)(implicit
-    tag: ClassTag[A],
-    system: ActorSystem
-  ): SendMsg[A] = {
+    log: ActorLog
+  )(implicit tag: ClassTag[A], system: ActorSystem): SendMsg[A] = {
 
     final case class Retry(address: Address)
-
 
     sealed trait Channel
 
@@ -80,17 +74,17 @@ object SendMsg {
 
         def apply[M](msg: M)(implicit tell: Tell[M]): Unit = tell(msg, to = to, from = from)
 
-        override def toString: String = s"$productPrefix(${ to.path.address })"
+        override def toString: String = s"$productPrefix(${to.path.address})"
       }
     }
-
 
     implicit val tell = new Tell[A] {}
 
     var state = Map.empty[Address, Channel]
 
     def safe(msg: => String)(f: => Unit): Unit = {
-      try f catch {
+      try f
+      catch {
         case NonFatal(failure) => log.error(s"$msg: $failure", failure)
       }
     }
@@ -124,7 +118,7 @@ object SendMsg {
 
     def actor() = new Actor {
 
-      val scheduler = context.system.scheduler
+      val scheduler   = context.system.scheduler
       implicit val ec = context.dispatcher
 
       def identify(address: Address, id: Long): Unit = {
@@ -149,7 +143,7 @@ object SendMsg {
         state.get(address) match {
           case Some(_: Channel.Connecting) => onConnected()
           case Some(_: Channel.Connected)  => log.debug(s"already connected to $address")
-          case None                        =>
+          case None =>
             log.warn(s"cannot find channel for $address")
             onConnected()
         }
@@ -189,7 +183,7 @@ object SendMsg {
 
       def onClusterState(clusterState: CurrentClusterState): Unit = {
         val addresses = clusterState.addresses(role)
-        log.debug(s"receive CurrentClusterState ${ addresses mkString "," }")
+        log.debug(s"receive CurrentClusterState ${addresses mkString ","}")
         val now = System.currentTimeMillis()
         val result = for {
           (address, idx) <- addresses.zipWithIndex
@@ -209,7 +203,7 @@ object SendMsg {
         log.debug(s"receive ActorIdentity $id from $address")
         ref match {
           case Some(ref) => connect(ref)
-          case None      =>
+          case None =>
             val address = state.collectFirst { case (address, Channel.Connecting(`id`)) => address }
             address match {
               case Some(address) =>
@@ -250,12 +244,12 @@ object SendMsg {
         case Terminated(ref)                   => onTerminated(ref.path.address)
         case Retry(address)                    => onRetry(address)
         case tag(x)                            => onMsg(x, sender().path.address)
-        case x                                 => log.warn(s"receive unexpected $x from ${ sender() }")
+        case x                                 => log.warn(s"receive unexpected $x from ${sender()}")
       }
     }
 
     val props = Props(actor())
-    val ref = factory.actorOf(props, name)
+    val ref   = factory.actorOf(props, name)
     cluster.subscribe(ref, classOf[MemberEvent])
 
     new SendMsg[A] {
@@ -273,7 +267,7 @@ object SendMsg {
         }
 
         def send() = {
-          log.debug(s"send $msg to ${ addresses mkString "," }")
+          log.debug(s"send $msg to ${addresses mkString ","}")
           for {
             address <- addresses
           } state.get(address) match {
@@ -295,13 +289,11 @@ object SendMsg {
     }
   }
 
-
   private val Empty = new SendMsg[Any] {
     def apply(msg: Any, addresses: Iterable[Address]): Unit = {}
   }
 
   def empty[A]: SendMsg[A] = Empty
-
 
   implicit class StatusOps(val self: CurrentClusterState) extends AnyVal {
 
@@ -317,7 +309,6 @@ object SendMsg {
       self.members.collect { case member if up(member) && hasRole(member) => member.address }
     }
   }
-
 
   implicit class ActorRefOps(val self: ActorRef) extends AnyVal {
 
@@ -338,7 +329,6 @@ object SendMsg {
     }
   }
 }
-
 
 trait ReceiveMsg[-A] {
 
@@ -361,7 +351,6 @@ object ReceiveMsg {
 
   def empty[A]: ReceiveMsg[A] = Empty
 
-
   def apply[A](onMsg: A => Unit): ReceiveMsg[A] = {
     new ReceiveMsg[A] {
       def connected(address: Address): Unit = {}
@@ -372,8 +361,8 @@ object ReceiveMsg {
 
   def apply[A, B](receiveMsg: ReceiveMsg[A], f: B => A): ReceiveMsg[B] = {
     new ReceiveMsg[B] {
-      def connected(address: Address): Unit = receiveMsg.connected(address)
-      def disconnected(address: Address): Unit = receiveMsg.disconnected(address)
+      def connected(address: Address): Unit     = receiveMsg.connected(address)
+      def disconnected(address: Address): Unit  = receiveMsg.disconnected(address)
       def apply(msg: B, address: Address): Unit = receiveMsg(f(msg), address)
     }
   }

@@ -14,7 +14,7 @@ class ConHubSerializer extends SerializerWithStringManifest {
   import ConHubSerializer._
 
   private val EventManifest = "A"
-  private val MsgsManifest = "C"
+  private val MsgsManifest  = "C"
 
   def identifier: Int = 1869692879
 
@@ -22,7 +22,7 @@ class ConHubSerializer extends SerializerWithStringManifest {
     x match {
       case _: RemoteEvent => EventManifest
       case _: RemoteMsgs  => MsgsManifest
-      case _              => illegalArgument(s"Cannot serialize message of ${ x.getClass } in ${ getClass.getName }")
+      case _              => illegalArgument(s"Cannot serialize message of ${x.getClass} in ${getClass.getName}")
     }
   }
 
@@ -30,7 +30,7 @@ class ConHubSerializer extends SerializerWithStringManifest {
     x match {
       case x: RemoteEvent => eventToBinary(x).require.toArray
       case x: RemoteMsgs  => msgsToBinary(x).require.toByteArray
-      case _              => illegalArgument(s"Cannot serialize message of ${ x.getClass } in ${ getClass.getName }")
+      case _              => illegalArgument(s"Cannot serialize message of ${x.getClass} in ${getClass.getName}")
     }
   }
 
@@ -38,7 +38,7 @@ class ConHubSerializer extends SerializerWithStringManifest {
     manifest match {
       case EventManifest => eventFromBinary(BitVector.view(bytes))
       case MsgsManifest  => msgsFromBinary(BitVector.view(bytes))
-      case _             => notSerializable(s"Cannot deserialize message for manifest $manifest in ${ getClass.getName }")
+      case _             => notSerializable(s"Cannot deserialize message for manifest $manifest in ${getClass.getName}")
     }
   }
 }
@@ -72,7 +72,6 @@ object ConHubSerializer {
 
   private def illegalArgument(msg: String) = throw new IllegalArgumentException(msg)
 
-
   private def eventFromBinary(bits: BitVector) = {
     val result = for {
       result <- codecs.int32.decode(bits)
@@ -83,7 +82,7 @@ object ConHubSerializer {
         case 2 => codecDisconnected.decode(bits)
         case 3 => codecSync.decode(bits)
         case 4 => Attempt.successful(DecodeResult(R.Event.ConHubJoined, bits))
-        case x => notSerializable(s"Cannot deserialize event for id $x in ${ getClass.getName }")
+        case x => notSerializable(s"Cannot deserialize event for id $x in ${getClass.getName}")
       }
     } yield {
       RemoteEvent(result.value)

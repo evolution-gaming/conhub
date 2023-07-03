@@ -13,7 +13,8 @@ object MemberEventSubscribe {
     cluster: Cluster,
     factor: ActorRefFactory,
     onState: CurrentClusterState => Unit,
-    onEvent: MemberEvent => Unit): Unsubscribe = {
+    onEvent: MemberEvent => Unit
+  ): Unsubscribe = {
 
     def actor() = new Actor {
       lazy val log = ActorLog(context.system, MemberEventSubscribe.getClass)
@@ -25,7 +26,7 @@ object MemberEventSubscribe {
     }
 
     val props = Props(actor())
-    val ref = factor.actorOf(props)
+    val ref   = factor.actorOf(props)
     cluster.subscribe(ref, classOf[MemberEvent])
     () => factor.stop(ref)
   }
