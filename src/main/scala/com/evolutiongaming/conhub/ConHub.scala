@@ -37,7 +37,7 @@ object ConHub {
 
 
   trait Manage[Id, A, M] {
-    type Result = Future[UpdateResult[Conn[A, M]]]
+    type Result = Future[UpdateResult[A]]
 
     /**
       *
