@@ -11,7 +11,6 @@ object RemoteEvent {
 
   final case class Value(id: String, bytes: ByteVector, version: Version)
 
-
   sealed trait Event
 
   object Event {
@@ -27,6 +26,5 @@ object RemoteEvent {
     case object ConHubJoined extends Event
   }
 }
-
 
 final case class RemoteMsgs(values: Nel[ByteVector])

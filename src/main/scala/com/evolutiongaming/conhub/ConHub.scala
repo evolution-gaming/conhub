@@ -5,9 +5,7 @@ import com.evolutiongaming.nel.Nel
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-trait ConHub[Id, A, M, L] extends ConHub.Send[A, M]
-  with ConHub.View[Id, A, M, L]
-  with ConHub.Manage[Id, A, M]
+trait ConHub[Id, A, M, L] extends ConHub.Send[A, M] with ConHub.View[Id, A, M, L] with ConHub.Manage[Id, A, M]
 
 object ConHub {
 
@@ -18,7 +16,6 @@ object ConHub {
 
     def !(msgs: Nel[M]): SR
   }
-
 
   trait View[Id, A, M, L] extends ConnTypes[A, M] {
 
@@ -35,12 +32,10 @@ object ConHub {
     def consRemote: Iterable[C.Remote] = cons.collect { case x: C.Remote => x }
   }
 
-
   trait Manage[Id, A, M] {
     type Result = Future[UpdateResult[Conn[A, M]]]
 
     /**
-      *
       * @param id connection ID
       * @param version operations against previous version will be ignored
       * @param con new connection
@@ -66,14 +61,13 @@ object ConHub {
   }
 }
 
-
 trait ConnTypes[A, M] {
   type C = Conn[A, M]
 
   object C {
-    type Local = Conn.Local[A, M]
-    type Remote = Conn.Remote[A]
+    type Local        = Conn.Local[A, M]
+    type Remote       = Conn.Remote[A]
     type Disconnected = Conn.Disconnected[A]
-    type Connected = Conn.Connected[A, M]
+    type Connected    = Conn.Connected[A, M]
   }
 }

@@ -15,6 +15,6 @@ class SendMsgSpec extends AnyWordSpec with ActorSpec with Matchers {
     val caught = intercept[RuntimeException] {
       SendMsg("", ReceiveMsg.empty, system, role)
     }
-    caught.getMessage shouldEqual s"Current node doesn't contain conhub's role ${ role }"
+    caught.getMessage shouldEqual s"Current node doesn't contain conhub's role ${role}"
   }
 }

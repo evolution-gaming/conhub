@@ -23,6 +23,9 @@ jobs:
         with:
           java-version: 17
 
+      - name: Check formatting
+        run: sbt scalafmtCheckAll
+
       - name: build ${{ matrix.scala }}
         run: sbt ++${{ matrix.scala }} clean coverage test
 
