@@ -1,10 +1,11 @@
 package com.evolutiongaming.conhub
 
 import java.time.Instant
-
 import akka.actor.{Address, Scheduler}
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
 import com.evolutiongaming.conhub.SequentialMapHelper._
+import com.evolutiongaming.conhub.UpdateResult.NotUpdated
+import com.evolutiongaming.conhub.UpdateResult.NotUpdated.Reason
 import com.typesafe.scalalogging.LazyLogging
 import scodec.bits.ByteVector
 
@@ -14,7 +15,7 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
 trait ConStates[Id, A, M] extends ConnTypes[A, M] {
-  type Result = Future[UpdateResult[A]]
+  type Result = Future[UpdateResult[C]]
 
   def values: collection.Map[Id, C]
 
@@ -94,10 +95,10 @@ object ConStates {
       def disconnect(id: Id, version: Version, timeout: FiniteDuration, ctx: Ctx): Result = {
         updatePf(id, Some(version), s"disconnect $ctx") { case Some(c) =>
 
-          def disconnect(local: Boolean): R = {
+          def disconnect(local: Boolean): UpdateStrategy[C] = {
             val timestamp = now()
             val disconnected = Conn.Disconnected(c.value, timeout, timestamp, version, local)
-            R.update(disconnected) {
+            UpdateStrategy.update(disconnected) {
               if (local) send.disconnected(id, timeout, version)
 
               val timeoutFinal = if (local) timeout else (timeout * 1.2).asInstanceOf[FiniteDuration]
@@ -113,7 +114,7 @@ object ConStates {
           (ctx, c) match {
             case (Ctx.Local, _: C.Local)                                    => disconnect(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => disconnect(local = false)
-            case _                                                          => R.Ignore
+            case _                                                          => UpdateStrategy.ignore(Reason.WrongContext(ctx.toString, c))
           }
         }
       }
@@ -133,7 +134,7 @@ object ConStates {
             case (Ctx.Local, _: C.Local)                                    => remove(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => remove(local = false)
             case (_, _: C.Disconnected)                                     => remove(local = ctx == Ctx.Local)
-            case _                                                          => R.Ignore
+            case _                                                          => UpdateStrategy.ignore(Reason.WrongContext(ctx.toString, c))
           }
         }
       }
@@ -141,30 +142,25 @@ object ConStates {
       def sync(id: Id) = {
         updatePf(id, None, "sync") { case Some(c: C.Local) =>
           send.sync(id, c.value, c.version)
-          R.Ignore
+          UpdateStrategy.ignore(Reason.UpdateNotRequiredByMethod)
         }
       }
 
-      private def updatePf(id: Id, version: Option[Version], name: => String)(pf: PartialFunction[Option[C], R]): Result = {
+      private def updatePf(id: Id, version: Option[Version], name: => String)(pf: PartialFunction[Option[C], UpdateStrategy[C]]): Result = {
 
         val future = states.updateAndRun(id) { before =>
-          val R(directive, callback) = {
+          val strategy = {
             val older = version.exists { version =>
               before.exists { _.version > version }
             }
 
-            if (older) R.Ignore
-            else pf.applyOrElse(before, (_: Option[C]) => R.Ignore)
+            if (older) UpdateStrategy.ignore(Reason.VersionConflict)
+            else pf.applyOrElse(before, (c: Option[C]) => UpdateStrategy.ignore(Reason.UpdateNotDefinedForValue(c)))
           }
 
           val run = () => {
 
-            def result(updated: Boolean, future: Future[Unit]) = {
-              val updateResult = UpdateResult(updated, before map { _.value })
-              (updateResult, future)
-            }
-
-            def run(after: Option[C]) = {
+            def run(after: Option[C], callback: () => Unit): (UpdateResult[C], Future[Unit]) = {
               if (before != after) {
                 callback()
                 val diff = Diff(id, before = before, after = after)
@@ -176,22 +172,22 @@ object ConStates {
                   case Success(_)     =>
                   case Failure(error) => logger.error(s"onChanged failed for $id $error", error)
                 }
-                result(true, future)
+                (UpdateResult.Updated(before), future)
               } else {
-                result(false, Future.unit)
+                (UpdateResult.NotUpdated(Reason.SameValue), Future.unit)
               }
             }
 
-            directive match {
-              case MapDirective.Update(after) => run(Some(after))
-              case MapDirective.Remove        => run(None)
-              case MapDirective.Ignore        => result(false, Future.unit)
+            strategy match {
+              case UpdateStrategy.Update(newValue, callback) => run(Some(newValue), callback)
+              case UpdateStrategy.Remove(callback)           => run(None, callback)
+              case UpdateStrategy.Ignore(reason)             => (UpdateResult.NotUpdated(reason), Future.unit)
             }
           }
 
-          logger.debug(s"$id $name $before $directive")
+          logger.debug(s"$id $name $before ${strategy.directive}")
 
-          (directive, run)
+          (strategy.directive, run)
         }
 
         future.onComplete {
@@ -206,31 +202,42 @@ object ConStates {
       }
 
       private def update(id: Id, con: C, before: Option[C], local: Boolean) = {
-        R.update(con) {
+        UpdateStrategy.update(con) {
           if (local && !before.contains(con)) {
             send.updated(id, con.value, con.version)
           }
         }
       }
 
-      private def remove(id: Id, version: Version, local: Boolean): R = {
-        R.remove {
+      private def remove(id: Id, version: Version, local: Boolean) =
+        UpdateStrategy.remove {
           if (local) send.removed(id, version)
         }
-      }
-
-      case class R(directive: MapDirective[C], callback: () => Unit = () => ())
-
-      object R {
-        lazy val Ignore: R = R(MapDirective.ignore)
-
-        def update(value: C)(callback: => Unit = ()): R = {
-          R(MapDirective.Update(value), () => callback)
-        }
-
-        def remove(callback: => Unit): R = R(MapDirective.remove, () => callback)
-      }
     }
+  }
+
+  private[conhub] sealed trait UpdateStrategy[+C] {
+    val directive: MapDirective[C]
+  }
+
+  private[conhub] object UpdateStrategy {
+    final case class Update[C](newValue: C, callback: () => Unit) extends UpdateStrategy[C] {
+      override val directive = MapDirective.update(newValue)
+    }
+
+    final case class Ignore[C](reason: NotUpdated.Reason[C]) extends UpdateStrategy[C] {
+      override val directive = MapDirective.ignore
+    }
+
+    final case class Remove(callback: () => Unit) extends UpdateStrategy[Nothing] {
+      override val directive = MapDirective.remove
+    }
+
+    def update[C](newValue: C)(callback: => Unit = ()) = Update(newValue, () => callback)
+
+    def remove(callback: => Unit) = Remove(() => callback)
+
+    def ignore[C](reason: NotUpdated.Reason[C]) = Ignore(reason)
   }
 
   final case class Diff[Id, +A](id: Id, before: Option[A], after: Option[A])
