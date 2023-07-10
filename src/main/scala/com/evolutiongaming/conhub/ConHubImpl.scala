@@ -89,7 +89,7 @@ object ConHubImpl extends LazyLogging {
 
           if (cons.nonEmpty) {
             sendMsgs.local(msg, cons, remote = false)
-            val addresses = this.addresses(cons)
+            val addresses = this.addresses(cons).toSet
             if (addresses.nonEmpty) sendMsgs.remote(Nel(msg), addresses)
           }
           SendResult(cons)
@@ -147,7 +147,7 @@ object ConHubImpl extends LazyLogging {
       }
 
       private def addresses(cons: Iterable[C]) = {
-        cons collect { case c: C.Remote => c.address }
+        cons.collect { case c: C.Remote => c.address }
       }
 
       private implicit class MsgOpsProxy(self: M) {
