@@ -49,7 +49,7 @@ class ConHubSpec extends AnyWordSpec {
     }
 
     val conStates = new ConStates[Void, Void, Void] {
-      private val result = UpdateResult.empty[Void].future
+      private val result = UpdateResult.Updated[Conn[Void, Void]](None).future
       def values: collection.Map[Void, C] = Map.empty
       def update(id: Void, local: C.Local): Result = result
       def update(id: Void, version: Version, value: ByteVector, address: Address): Result = result

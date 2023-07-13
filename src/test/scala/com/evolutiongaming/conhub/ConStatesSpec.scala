@@ -1,13 +1,14 @@
 package com.evolutiongaming.conhub
 
 import java.time.Instant
-
 import akka.actor.{ActorRef, Address}
 import akka.testkit.TestProbe
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.{SequentialMap, Sequentially}
 import com.evolutiongaming.conhub.ConHubSpecHelper._
 import com.evolutiongaming.conhub.ConStates.{Ctx, Diff}
+import com.evolutiongaming.conhub.UpdateResult.{NotUpdated, Updated}
+import com.evolutiongaming.conhub.UpdateResult.NotUpdated.Reason
 import com.evolutiongaming.conhub.transport.SendMsg
 import com.evolutiongaming.conhub.{RemoteEvent => R}
 import com.evolutiongaming.test.ActorSpec
@@ -68,58 +69,59 @@ class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHub
     "update" in new Scope {
       state shouldEqual None
 
-      conStates.update(id, local).get shouldEqual UpdateResult.created
+      conStates.update(id, local).get shouldEqual Updated(None)
       state shouldEqual Some(local)
       expectUpdated(connection)
 
-      conStates.update(id, local).get shouldEqual UpdateResult(connection)
+      conStates.update(id, local).get shouldEqual NotUpdated(Reason.SameValue)
 
       val newLocal = local.withConnection(connection.copy(id = "newId"))
-      conStates.update(id, newLocal).get shouldEqual UpdateResult(updated = true, connection)
+      conStates.update(id, newLocal).get shouldEqual Updated(Some(local))
       state shouldEqual Some(newLocal)
       expectUpdated(newLocal.value)
 
-      conStates.update(id, local.copy(version = version.dec)).get shouldEqual UpdateResult(newLocal.value)
+      conStates.update(id, local.copy(version = version.dec)).get shouldEqual NotUpdated(Reason.VersionConflict)
       state shouldEqual Some(newLocal)
     }
 
     "disconnect" in new Scope {
       state shouldEqual None
 
-      conStates.disconnect(id, version, reconnectTimeout).get shouldEqual UpdateResult.empty
+      conStates.disconnect(id, version, reconnectTimeout).get shouldEqual NotUpdated(Reason.UpdateNotDefinedForValue(None))
       state shouldEqual None
 
-      conStates.update(id, local).get shouldEqual UpdateResult.created
+      conStates.update(id, local).get shouldEqual Updated(None)
       state shouldEqual Some(local)
       expectUpdated(connection)
 
-      conStates.update(id, version.dec, connection, address).get shouldEqual UpdateResult(connection)
+      conStates.update(id, version.dec, connection, address).get shouldEqual NotUpdated(Reason.VersionConflict)
 
-      conStates.update(id, version, connection, address).get shouldEqual UpdateResult(updated = true, connection)
+      conStates.update(id, version, connection, address).get shouldEqual Updated(Some(local))
       state shouldEqual Some(remote)
 
-      conStates.disconnect(id, version.dec, reconnectTimeout, Ctx.Remote(address)).get shouldEqual UpdateResult(connection)
+      conStates.disconnect(id, version.dec, reconnectTimeout, Ctx.Remote(address)).get shouldEqual NotUpdated(Reason.VersionConflict)
       state shouldEqual Some(remote)
 
       conStates.disconnect(id, version, reconnectTimeout, Ctx.Remote(address))
-      state shouldEqual Some(disconnected.copy(isLocal = false))
+      val disconnectedRemote = disconnected.copy(isLocal = false)
+      state shouldEqual Some(disconnectedRemote)
 
-      conStates.update(id, local).get shouldEqual UpdateResult(updated = true, connection)
+      conStates.update(id, local).get shouldEqual Updated(Some(disconnectedRemote))
       state shouldEqual Some(local)
       expectUpdated(connection)
     }
 
     "remove" in new Scope {
-      conStates.remove(id, version).get shouldEqual UpdateResult.empty
+      conStates.remove(id, version).get shouldEqual NotUpdated(Reason.UpdateNotDefinedForValue(None))
       state shouldEqual None
 
-      conStates.update(id, local).get shouldEqual UpdateResult.created
+      conStates.update(id, local).get shouldEqual Updated(None)
       state shouldEqual Some(local)
       expectUpdated(connection)
 
-      conStates.remove(id, version.dec).get shouldEqual UpdateResult(connection)
+      conStates.remove(id, version.dec).get shouldEqual NotUpdated(Reason.VersionConflict)
 
-      conStates.remove(id, version).get shouldEqual UpdateResult(updated = true, connection)
+      conStates.remove(id, version).get shouldEqual Updated(Some(local))
       state shouldEqual None
     }
 
