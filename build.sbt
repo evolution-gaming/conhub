@@ -4,13 +4,13 @@ name := "conhub"
 
 organization := "com.evolutiongaming"
 
-homepage := Some(new URL("http://github.com/evolution-gaming/conhub"))
+homepage := Some(url("https://github.com/evolution-gaming/conhub"))
 
 startYear := Some(2018)
 
 organizationName := "Evolution"
 
-organizationHomepage := Some(url("http://evolution.com"))
+organizationHomepage := Some(url("https://evolution.com"))
 
 scalaVersion := crossScalaVersions.value.head
 
@@ -45,3 +45,7 @@ releaseCrossBuild := true
 Compile / doc / scalacOptions ++= Seq("-groups", "-implicits", "-no-link-warnings")
 
 versionScheme := Some("semver-spec")
+
+//addCommandAlias("check", "all versionPolicyCheck Compile/doc")
+addCommandAlias("check", "show version")
+addCommandAlias("build", "+all compile test")
