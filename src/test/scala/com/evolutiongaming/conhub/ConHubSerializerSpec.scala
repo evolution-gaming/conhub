@@ -1,15 +1,15 @@
 package com.evolutiongaming.conhub
 
-import com.evolutiongaming.conhub.{RemoteEvent => R}
+import com.evolutiongaming.conhub.RemoteEvent as R
 import com.evolutiongaming.nel.Nel
 import scodec.bits.ByteVector
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 class ConHubSerializerSpec extends AnyFunSuite with Matchers {
-  import ConHubSerializerSpec._
+  import ConHubSerializerSpec.*
 
   private val serializer = new ConHubSerializer
 

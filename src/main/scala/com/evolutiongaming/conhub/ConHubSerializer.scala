@@ -3,15 +3,16 @@ package com.evolutiongaming.conhub
 import java.io.NotSerializableException
 
 import akka.serialization.SerializerWithStringManifest
-import com.evolutiongaming.conhub.{RemoteEvent => R}
+import com.evolutiongaming.conhub.RemoteEvent as R
 import com.evolutiongaming.nel.Nel
 import scodec.bits.{BitVector, ByteVector}
 import scodec.{Attempt, Codec, DecodeResult, codecs}
 
-import scala.concurrent.duration._
+import scala.annotation.nowarn
+import scala.concurrent.duration.*
 
 class ConHubSerializer extends SerializerWithStringManifest {
-  import ConHubSerializer._
+  import ConHubSerializer.*
 
   private val EventManifest = "A"
   private val MsgsManifest = "C"
@@ -43,6 +44,10 @@ class ConHubSerializer extends SerializerWithStringManifest {
   }
 }
 
+//suppresses comp warning for 2.13 with -Xsource:3
+@nowarn(
+  "msg=Implicit method .+ was found in a package prefix of the required type, which is not part of the implicit scope in Scala 3"
+)
 object ConHubSerializer {
 
   val codecBytes: Codec[ByteVector] = codecs.variableSizeBytes(codecs.int32, codecs.bytes)
@@ -68,9 +73,9 @@ object ConHubSerializer {
 
   private val codecSync = codecsNel(codecValue).as[RemoteEvent.Event.Sync]
 
-  private def notSerializable(msg: String) = throw new NotSerializableException(msg)
+  private def notSerializable(msg: String): Nothing = throw new NotSerializableException(msg)
 
-  private def illegalArgument(msg: String) = throw new IllegalArgumentException(msg)
+  private def illegalArgument(msg: String): Nothing = throw new IllegalArgumentException(msg)
 
 
   private def eventFromBinary(bits: BitVector) = {

@@ -9,9 +9,9 @@ trait ConHubSpecHelper extends ConnTypes[Connection, ConHubSpecHelper.Id] {
 
   val send: Send = new Send
 
-  val version = Version.Zero
+  val version: Version = Version.Zero
 
-  def newLocal(connection: Connection, send: Send = send) = {
+  def newLocal(connection: Connection, send: Send = send): Conn.Local[Connection, Msg] = {
     Conn.Local[Connection, Msg](connection, send, version)
   }
 }
@@ -23,8 +23,8 @@ object ConHubSpecHelper {
   def newId(): String = UUID.randomUUID().toString
 
   object ConnectionSerializer extends Serializer.Bin[Connection] {
-    def to(x: Connection) = ByteVector.encodeUtf8(x.id).fold(throw _, identity)
-    def from(bytes: ByteVector) = Connection(bytes.decodeUtf8.fold(throw _, identity))
+    def to(x: Connection): ByteVector = ByteVector.encodeUtf8(x.id).fold(throw _, identity)
+    def from(bytes: ByteVector): Connection = Connection(bytes.decodeUtf8.fold(throw _, identity))
   }
 
 

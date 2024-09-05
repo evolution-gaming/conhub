@@ -1,9 +1,8 @@
 package com.evolutiongaming.conhub
 
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object SequentialMapHelper {
 
@@ -25,7 +24,7 @@ object SequentialMapHelper {
       value: V,
       onUpdated: (K, Set[V], Set[V]) => Unit = (_, _, _) => ()): Future[Unit] = {
 
-      implicit val ec = CurrentThreadExecutionContext
+      implicit val ec: ExecutionContext = ExecutionContext.parasitic
 
       if (before != after) {
         val futureBefore = before.fold(Future.unit) { key => updateSet(key)(_ - value, onUpdated(key, _, _)) }
@@ -59,6 +58,6 @@ object SequentialMapHelper {
   implicit class FutureOps[A](val self: Future[A]) extends AnyVal {
 
     // to execute f strictly in order of future origin
-    def mapNow[B](f: A => B): Future[B] = self.map(f)(CurrentThreadExecutionContext)
+    def mapNow[B](f: A => B): Future[B] = self.map(f)(ExecutionContext.parasitic)
   }
 }

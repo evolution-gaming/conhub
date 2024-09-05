@@ -18,7 +18,10 @@ object UpdateResult {
 
   def created[A]: UpdateResult[A] = Created
 
-  def apply[A](updated: Boolean, value: A): UpdateResult[A] = UpdateResult(updated, Some(value))
+  def apply[A](updated: Boolean, value: A): UpdateResult[A] = UpdateResult[A](
+    updated = updated,
+    value = Some(value),
+  )
 
-  def apply[A](value: A): UpdateResult[A] = UpdateResult(value = Some(value))
+  def apply[A](value: A): UpdateResult[A] = UpdateResult[A](value = Some(value))
 }

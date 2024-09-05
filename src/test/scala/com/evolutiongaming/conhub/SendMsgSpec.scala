@@ -13,7 +13,7 @@ class SendMsgSpec extends AnyWordSpec with ActorSpec with Matchers {
   "do not allow create SendMsg without conhub's role" in {
     val role = "dummy"
     val caught = intercept[RuntimeException] {
-      SendMsg("", ReceiveMsg.empty, system, role)
+      SendMsg[Unit]("", ReceiveMsg.empty, system, role)
     }
     caught.getMessage shouldEqual s"Current node doesn't contain conhub's role ${ role }"
   }
