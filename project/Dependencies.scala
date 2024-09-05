@@ -8,7 +8,7 @@ object Dependencies {
   val `akka-serialization` = "com.evolutiongaming"        %% "akka-serialization" % "1.0.4"
   val nel                  = "com.evolutiongaming"        %% "nel"                % "1.3.4"
   val `safe-actor`         = "com.evolutiongaming"        %% "safe-actor"         % "3.0.0"
-  val `scala-tools`        = "com.evolutiongaming"        %% "scala-tools"        % "3.0.5"
+  val `scala-tools`        = "com.evolutiongaming"        %% "scala-tools"        % "3.0.6"
   val scalatest            = "org.scalatest"              %% "scalatest"          % "3.2.14"
   val `scala-logging`      = "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.5"
 
