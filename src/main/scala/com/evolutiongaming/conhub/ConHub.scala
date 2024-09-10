@@ -27,7 +27,7 @@ object ConHub {
     def !(msg: M): SR
 
     /**
-      * @param msg messages will be delivered to all matched connections whether it is Local or Remote connection
+      * @param msgs messages will be delivered to all matched connections whether it is Local or Remote connection
       * @return list of local connections that matched the message
       */
     def !(msgs: Nel[M]): SR
@@ -44,7 +44,8 @@ object ConHub {
 
     def cons: Iterable[C] = conStates.values.values
 
-    def consLocal: Iterable[C.Local] = cons.collect { case x: C.Local => x }
+    //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+    def consLocal: Iterable[C.Local] = cons.collect { case x: C.Local@unchecked => x }
 
     def consRemote: Iterable[C.Remote] = cons.collect { case x: C.Remote => x }
   }

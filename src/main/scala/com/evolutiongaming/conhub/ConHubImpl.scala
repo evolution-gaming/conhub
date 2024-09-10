@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.evolutiongaming.concurrent.sequentially.Sequentially
 import com.evolutiongaming.nel.Nel
-import com.evolutiongaming.concurrent.FutureHelper._
+import com.evolutiongaming.concurrent.FutureHelper.*
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -43,7 +43,7 @@ object ConHubImpl extends LazyLogging {
     executor: ExecutionContext
   ): ConHub[Id, A, M, L] = {
 
-    implicit val executor1 = executor
+    implicit val executor1: ExecutionContext = executor
 
     new ConHub[Id, A, M, L] {
 

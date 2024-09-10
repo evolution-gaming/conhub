@@ -2,7 +2,7 @@ package com.evolutiongaming.conhub
 
 import akka.actor.{ActorRefFactory, ActorSystem, Address}
 import com.evolutiongaming.conhub.transport.{ReceiveMsg, SendMsg}
-import com.evolutiongaming.conhub.{RemoteEvent => R}
+import com.evolutiongaming.conhub.RemoteEvent as R
 import com.evolutiongaming.nel.Nel
 
 import scala.concurrent.duration.FiniteDuration

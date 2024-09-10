@@ -4,7 +4,7 @@ import java.time.Instant
 
 import akka.actor.{Address, Scheduler}
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
-import com.evolutiongaming.conhub.SequentialMapHelper._
+import com.evolutiongaming.conhub.SequentialMapHelper.*
 import com.typesafe.scalalogging.LazyLogging
 import scodec.bits.ByteVector
 
@@ -70,7 +70,7 @@ object ConStates {
 
       private val send: SendEvent[Id, A] = connect(this)
 
-      def values = states.values
+      def values: collection.Map[Id, C] = states.values
 
       def update(id: Id, con: C.Local): Result = {
         updatePf(id, Some(con.version), "update") { case before =>
@@ -111,7 +111,8 @@ object ConStates {
           }
 
           (ctx, c) match {
-            case (Ctx.Local, _: C.Local)                                    => disconnect(local = true)
+            //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+            case (Ctx.Local, _: C.Local@unchecked)                          => disconnect(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => disconnect(local = false)
             case _                                                          => R.Ignore
           }
@@ -130,7 +131,8 @@ object ConStates {
           def remove(local: Boolean) = this.remove(id, version, local)
 
           (ctx, c) match {
-            case (Ctx.Local, _: C.Local)                                    => remove(local = true)
+            //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+            case (Ctx.Local, _: C.Local@unchecked)                          => remove(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => remove(local = false)
             case (_, _: C.Disconnected)                                     => remove(local = ctx == Ctx.Local)
             case _                                                          => R.Ignore
@@ -139,7 +141,8 @@ object ConStates {
       }
 
       def sync(id: Id) = {
-        updatePf(id, None, "sync") { case Some(c: C.Local) =>
+        //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+        updatePf(id, None, "sync") { case Some(c: C.Local@unchecked) =>
           send.sync(id, c.value, c.version)
           R.Ignore
         }

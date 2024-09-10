@@ -1,13 +1,12 @@
 package com.evolutiongaming.conhub
 
 import akka.actor.Address
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.Sequentially
-import com.evolutiongaming.concurrent.FutureHelper._
+import com.evolutiongaming.concurrent.FutureHelper.*
 import com.evolutiongaming.nel.Nel
 import scodec.bits.ByteVector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -72,6 +71,6 @@ class ConHubSpec extends AnyWordSpec {
       MsgOps,
       EmptyConMetrics,
       connect,
-      CurrentThreadExecutionContext)
+      ExecutionContext.parasitic)
   }
 }

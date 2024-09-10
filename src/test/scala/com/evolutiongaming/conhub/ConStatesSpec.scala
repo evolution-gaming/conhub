@@ -4,16 +4,15 @@ import java.time.Instant
 
 import akka.actor.{ActorRef, Address}
 import akka.testkit.TestProbe
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.{SequentialMap, Sequentially}
-import com.evolutiongaming.conhub.ConHubSpecHelper._
+import com.evolutiongaming.conhub.ConHubSpecHelper.*
 import com.evolutiongaming.conhub.ConStates.{Ctx, Diff}
 import com.evolutiongaming.conhub.transport.SendMsg
-import com.evolutiongaming.conhub.{RemoteEvent => R}
+import com.evolutiongaming.conhub.RemoteEvent as R
 import com.evolutiongaming.test.ActorSpec
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -185,7 +184,6 @@ class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHub
     val remote = Conn.Remote(connection, address, version)
 
     val pubSubProbe = TestProbe()
-    val listenerProbe = TestProbe()
 
     val states = SequentialMap[Id, Conn[Connection, Msg]](Sequentially.now)
 
@@ -203,9 +201,7 @@ class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHub
       ConnectionSerializer,
       onStateChanged,
       () => instant,
-      connect)(CurrentThreadExecutionContext)
-
-    val send = new Send
+      connect)(ExecutionContext.parasitic)
 
     def onStateChanged(diff: Diff[Id, C]) = {
       testActor ! diff

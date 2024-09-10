@@ -1,11 +1,12 @@
 package com.evolutiongaming.conhub.transport
 
-import akka.actor._
-import akka.cluster.ClusterEvent._
+import akka.actor.*
+import akka.cluster.ClusterEvent.*
 import akka.cluster.{Cluster, Member, MemberStatus}
 import com.evolutiongaming.safeakka.actor.ActorLog
 
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.*
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
@@ -43,12 +44,12 @@ object SendMsg {
 
     def validate(cluster: Cluster): Unit =
       if (!cluster.selfRoles.contains(role))
-        sys.error(s"Current node doesn't contain conhub's role ${ role }")
+        sys.error(s"Current node doesn't contain conhub's role $role")
 
     if (system.hasExtension(Cluster)) {
       val cluster = Cluster(system)
       validate(cluster)
-      val log = ActorLog(system, classOf[SendMsg[_]]) prefixed name
+      val log = ActorLog(system, classOf[SendMsg[?]]) prefixed name
       apply(name, receive, factory, retryInterval, cluster, role, log)
     } else {
       empty
@@ -85,7 +86,7 @@ object SendMsg {
     }
 
 
-    implicit val tell = new Tell[A] {}
+    implicit val tell: Tell[A] = new Tell[A] {}
 
     var state = Map.empty[Address, Channel]
 
@@ -122,10 +123,10 @@ object SendMsg {
       }
     }
 
-    def actor() = new Actor {
+    def actor(): Actor = new Actor {
 
-      val scheduler = context.system.scheduler
-      implicit val ec = context.dispatcher
+      private val scheduler = context.system.scheduler
+      private implicit val ec: ExecutionContext = context.dispatcher
 
       def identify(address: Address, id: Long): Unit = {
         log.debug(s"identify $address $id")
@@ -242,7 +243,7 @@ object SendMsg {
         disconnect(address)
       }
 
-      def receive = {
+      def receive: Receive = {
         case x: MemberEvent                    => onMemberEvent(x)
         case x: CurrentClusterState            => onClusterState(x)
         case ActorIdentity(id: Long, ref)      => onActorIdentity(id, ref)
@@ -258,40 +259,35 @@ object SendMsg {
     val ref = factory.actorOf(props, name)
     cluster.subscribe(ref, classOf[MemberEvent])
 
-    new SendMsg[A] {
+    (msg: A, addresses: Iterable[Address]) => {
 
-      def apply(msg: A, addresses: Iterable[Address]): Unit = {
-
-        def broadcast() = {
-          log.debug(s"broadcast $msg")
-          for {
-            (address, channel) <- state
-          } channel match {
-            case channel: Channel.Connected => channel(msg)
-            case _                          => ref.tell(address, msg)
-          }
+      def broadcast(): Unit = {
+        log.debug(s"broadcast $msg")
+        for {
+          (address, channel) <- state
+        } channel match {
+          case channel: Channel.Connected => channel(msg)
+          case _                          => ref.tell(address, msg)
         }
-
-        def send() = {
-          log.debug(s"send $msg to ${ addresses mkString "," }")
-          for {
-            address <- addresses
-          } state.get(address) match {
-            case Some(channel: Channel.Connected) => channel(msg)
-            case _                                => ref.tell(address, msg)
-          }
-        }
-
-        if (addresses.isEmpty) broadcast() else send()
       }
+
+      def send(): Unit = {
+        log.debug(s"send $msg to ${ addresses mkString "," }")
+        for {
+          address <- addresses
+        } state.get(address) match {
+          case Some(channel: Channel.Connected) => channel(msg)
+          case _                                => ref.tell(address, msg)
+        }
+      }
+
+      if (addresses.isEmpty) broadcast() else send()
     }
   }
 
   def apply[A, B](sendMsg: SendMsg[A], f: B => A): SendMsg[B] = {
-    new SendMsg[B] {
-      def apply(msg: B, addresses: Iterable[Address]): Unit = {
-        sendMsg(f(msg), addresses)
-      }
+    (msg: B, addresses: Iterable[Address]) => {
+      sendMsg(f(msg), addresses)
     }
   }
 

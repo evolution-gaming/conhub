@@ -10,8 +10,8 @@ jobs:
     strategy:
       matrix:
         scala:
-          - 2.13.8
-          - 2.12.17
+          - 2.13.14
+          - 3.3.3
 
     steps:
       - uses: actions/checkout@v3
@@ -19,12 +19,12 @@ jobs:
       - uses: coursier/cache-action@v6
 
       - name: scala
-        uses: olafurpg/setup-scala@v13
+        uses: olafurpg/setup-scala@v14
         with:
           java-version: 17
 
       - name: build ${{ matrix.scala }}
-        run: sbt ++${{ matrix.scala }} clean coverage test
+        run: sbt ++${{ matrix.scala }} clean check coverage test
 
       - name: test coverage
         if: success()
