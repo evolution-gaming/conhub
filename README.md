@@ -24,5 +24,5 @@ conHub ! Envelope(LookupById("testId"), Msg(Array(…)))
 ```scala
 addSbtPlugin("com.evolution" % "sbt-artifactory-plugin" % "0.0.2")
 
-libraryDependencies += "com.evolutiongaming" %% "conhub" % "1.1.1"
+libraryDependencies += "com.evolutiongaming" %% "conhub" % "1.3.0"
 ```
