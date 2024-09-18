@@ -130,6 +130,8 @@ object ConHubImpl extends LazyLogging {
 
         for {remoteMsgs <- Nel.opt(remoteMsgs)} sendMsgs.remote(remoteMsgs, Nil)
 
+        val cons = msgsAndCons.flatMap { case (_, cons) => cons }
+
         future map { _ => SendResult(cons) }
       }
 
