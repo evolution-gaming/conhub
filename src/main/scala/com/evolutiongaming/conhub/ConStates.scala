@@ -111,7 +111,7 @@ object ConStates {
           }
 
           (ctx, c) match {
-            //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+            //@unchecked needed to work around a Scala 3.3.5 compiler quirk with pattern matching
             case (Ctx.Local, _: C.Local@unchecked)                          => disconnect(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => disconnect(local = false)
             case _                                                          => R.Ignore
@@ -131,7 +131,7 @@ object ConStates {
           def remove(local: Boolean) = this.remove(id, version, local)
 
           (ctx, c) match {
-            //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+            //@unchecked needed to work around a Scala 3.3.5 compiler quirk with pattern matching
             case (Ctx.Local, _: C.Local@unchecked)                          => remove(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => remove(local = false)
             case (_, _: C.Disconnected)                                     => remove(local = ctx == Ctx.Local)
@@ -141,7 +141,7 @@ object ConStates {
       }
 
       def sync(id: Id) = {
-        //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+        //@unchecked needed to work around a Scala 3.3.5 compiler quirk with pattern matching
         updatePf(id, None, "sync") { case Some(c: C.Local@unchecked) =>
           send.sync(id, c.value, c.version)
           R.Ignore
