@@ -13,7 +13,7 @@ object Dependencies {
   val `scala-logging`      = "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.5"
   val `scodec-bits`        = "org.scodec"                 %% "scodec-bits"        % "1.2.1"
   val `scodec-core1`       = "org.scodec"                 %% "scodec-core"        % "1.11.10"
-  val `scodec-core2`       = "org.scodec"                 %% "scodec-core"        % "2.3.1"
+  val `scodec-core2`       = "org.scodec"                 %% "scodec-core"        % "2.3.2"
 
   object Akka {
     private val version = "2.6.21"
