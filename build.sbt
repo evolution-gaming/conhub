@@ -43,7 +43,6 @@ libraryDependencies ++= Seq(
   `scala-logging`,
   `akka-serialization`,
   nel,
-  `safe-actor`,
   `scala-tools` % Test,
   scalatest % Test)
 

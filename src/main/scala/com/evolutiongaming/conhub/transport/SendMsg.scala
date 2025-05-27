@@ -3,7 +3,7 @@ package com.evolutiongaming.conhub.transport
 import akka.actor.*
 import akka.cluster.ClusterEvent.*
 import akka.cluster.{Cluster, Member, MemberStatus}
-import com.evolutiongaming.safeakka.actor.ActorLog
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.*
@@ -17,7 +17,7 @@ trait SendMsg[-A] {
   def map[B](f: B => A): SendMsg[B] = SendMsg(this, f)
 }
 
-object SendMsg {
+object SendMsg extends StrictLogging {
 
   val RetryInterval: FiniteDuration = 300.millis
 
@@ -41,7 +41,6 @@ object SendMsg {
     tag: ClassTag[A],
     system: ActorSystem
   ): SendMsg[A] = {
-
     def validate(cluster: Cluster): Unit =
       if (!cluster.selfRoles.contains(role))
         sys.error(s"Current node doesn't contain conhub's role $role")
@@ -49,8 +48,7 @@ object SendMsg {
     if (system.hasExtension(Cluster)) {
       val cluster = Cluster(system)
       validate(cluster)
-      val log = ActorLog(system, classOf[SendMsg[?]]) prefixed name
-      apply(name, receive, factory, retryInterval, cluster, role, log)
+      apply(name, receive, factory, retryInterval, cluster, role)
     } else {
       empty
     }
@@ -63,7 +61,7 @@ object SendMsg {
     retryInterval: FiniteDuration,
     cluster: Cluster,
     role: String,
-    log: ActorLog)(implicit
+  )(implicit
     tag: ClassTag[A],
     system: ActorSystem
   ): SendMsg[A] = {
@@ -92,13 +90,13 @@ object SendMsg {
 
     def safe(msg: => String)(f: => Unit): Unit = {
       try f catch {
-        case NonFatal(failure) => log.error(s"$msg: $failure", failure)
+        case NonFatal(failure) => logger.error(s"$name $msg: $failure", failure)
       }
     }
 
     def disconnect(address: Address): Unit = {
       if (state contains address) {
-        log.debug(s"onDisconnected $address")
+        logger.debug(s"$name onDisconnected $address")
         state = state - address
         safe(s"disconnected failed for $address") {
           receive.disconnected(address)
@@ -108,12 +106,12 @@ object SendMsg {
 
     def onMsg(msg: A, address: Address): Unit = {
       if (address.hasGlobalScope) {
-        log.debug(s"receive $msg from $address")
+        logger.debug(s"$name receive $msg from $address")
         safe(s"receive failed for $msg from $address") {
           receive(msg, address)
         }
       } else {
-        log.warn(s"receive unexpected $msg from $address")
+        logger.warn(s"$name receive unexpected $msg from $address")
       }
     }
 
@@ -129,7 +127,7 @@ object SendMsg {
       private implicit val ec: ExecutionContext = context.dispatcher
 
       def identify(address: Address, id: Long): Unit = {
-        log.debug(s"identify $address $id")
+        logger.debug(s"$name identify $address $id")
         val identify = Identify(id)
         self.tell(address, identify)
       }
@@ -138,7 +136,7 @@ object SendMsg {
         val address = ref.path.address
 
         def onConnected(): Unit = {
-          log.debug(s"onConnected $address")
+          logger.debug(s"$name onConnected $address")
           val channel = Channel.Connected(to = ref, from = self)
           state = state + (address -> channel)
           context.watch(ref)
@@ -149,9 +147,9 @@ object SendMsg {
 
         state.get(address) match {
           case Some(_: Channel.Connecting) => onConnected()
-          case Some(_: Channel.Connected)  => log.debug(s"already connected to $address")
+          case Some(_: Channel.Connected)  => logger.debug(s"$name already connected to $address")
           case None                        =>
-            log.warn(s"cannot find channel for $address")
+            logger.warn(s"$name cannot find channel for $address")
             onConnected()
         }
       }
@@ -160,7 +158,7 @@ object SendMsg {
 
         def onMemberUp(member: Member): Unit = {
           val address = member.address
-          log.debug(s"receive MemberUp for $address")
+          logger.debug(s"$name receive MemberUp for $address")
           if (address != cluster.selfAddress && !(state contains address) && member.roles.contains(role)) {
             val id = System.currentTimeMillis()
             identify(address, id)
@@ -170,12 +168,12 @@ object SendMsg {
         }
 
         def onMemberRemoved(address: Address): Unit = {
-          log.debug(s"receive MemberRemoved from $address")
+          logger.debug(s"$name receive MemberRemoved from $address")
           disconnect(address)
         }
 
         def onMemberDowned(address: Address): Unit = {
-          log.debug(s"receive MemberDowned from $address")
+          logger.debug(s"$name receive MemberDowned from $address")
           disconnect(address)
         }
 
@@ -190,7 +188,7 @@ object SendMsg {
 
       def onClusterState(clusterState: CurrentClusterState): Unit = {
         val addresses = clusterState.addresses(role)
-        log.debug(s"receive CurrentClusterState ${ addresses mkString "," }")
+        logger.debug(s"$name receive CurrentClusterState ${ addresses mkString "," }")
         val now = System.currentTimeMillis()
         val result = for {
           (address, idx) <- addresses.zipWithIndex
@@ -207,39 +205,39 @@ object SendMsg {
 
       def onActorIdentity(id: Long, ref: Option[ActorRef]): Unit = {
         val address = ref map { _.path.address }
-        log.debug(s"receive ActorIdentity $id from $address")
+        logger.debug(s"$name receive ActorIdentity $id from $address")
         ref match {
           case Some(ref) => connect(ref)
           case None      =>
             val address = state.collectFirst { case (address, Channel.Connecting(`id`)) => address }
             address match {
               case Some(address) =>
-                log.debug(s"retrying in $retryInterval")
+                logger.debug(s"$name retrying in $retryInterval")
                 val _ = scheduler.scheduleOnce(retryInterval, self, Retry(address))
 
               case None =>
-                log.warn(s"cannot find address for $id")
+                logger.warn(s"$name cannot find address for $id")
             }
         }
       }
 
       def onRetry(address: Address): Unit = {
-        log.debug(s"receive Retry $address")
+        logger.debug(s"$name receive Retry $address")
         state.get(address) match {
           case Some(c: Channel.Connecting) => identify(address, c.id)
-          case Some(_: Channel.Connected)  => log.debug(s"already connected to $address")
-          case None                        => log.warn(s"cannot find io for $address")
+          case Some(_: Channel.Connected)  => logger.debug(s"$name already connected to $address")
+          case None                        => logger.warn(s"$name cannot find io for $address")
         }
       }
 
       def onReady(ref: ActorRef): Unit = {
         val address = ref.path.address
-        log.debug(s"receive Ready from $address")
+        logger.debug(s"$name receive Ready from $address")
         connect(ref)
       }
 
       def onTerminated(address: Address): Unit = {
-        log.debug(s"receive Terminated from $address")
+        logger.debug(s"$name receive Terminated from $address")
         disconnect(address)
       }
 
@@ -251,7 +249,7 @@ object SendMsg {
         case Terminated(ref)                   => onTerminated(ref.path.address)
         case Retry(address)                    => onRetry(address)
         case tag(x)                            => onMsg(x, sender().path.address)
-        case x                                 => log.warn(s"receive unexpected $x from ${ sender() }")
+        case x                                 => logger.warn(s"$name receive unexpected $x from ${ sender() }")
       }
     }
 
@@ -262,7 +260,7 @@ object SendMsg {
     (msg: A, addresses: Iterable[Address]) => {
 
       def broadcast(): Unit = {
-        log.debug(s"broadcast $msg")
+        logger.debug(s"$name broadcast $msg")
         for {
           (address, channel) <- state
         } channel match {
@@ -272,7 +270,7 @@ object SendMsg {
       }
 
       def send(): Unit = {
-        log.debug(s"send $msg to ${ addresses mkString "," }")
+        logger.debug(s"$name send $msg to ${ addresses mkString "," }")
         for {
           address <- addresses
         } state.get(address) match {
