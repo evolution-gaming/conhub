@@ -1,7 +1,7 @@
 package com.evolutiongaming.conhub
 
 import com.evolutiongaming.conhub.RemoteEvent as R
-import com.evolutiongaming.nel.Nel
+import cats.data.NonEmptyList as Nel
 import scodec.bits.ByteVector
 
 import scala.concurrent.duration.*
@@ -34,10 +34,10 @@ class ConHubSerializerSpec extends AnyFunSuite with Matchers {
   }
 
   test("toBinary & fromBinary for Event.Sync") {
-    val values = Nel(1, 2, 3) map { x => x.toString }
+    val values = Nel.of(1, 2, 3) map { x => x.toString }
     val expected = R.Event.Sync(values map { value => R.Value(value, value.encodeStr, version) })
     val actual = toAndFromBinaryEvent(expected)
-    actual.values.foreach { value =>
+    actual.values.toList.foreach { value =>
       value.bytes.decodeStr shouldEqual value.id
     }
     actual.copy(values = expected.values) shouldEqual expected
@@ -48,7 +48,7 @@ class ConHubSerializerSpec extends AnyFunSuite with Matchers {
   }
 
   test("toBinary & fromBinary for Msgs ") {
-    val msgs = Nel("msg1", "msg2")
+    val msgs = Nel.of("msg1", "msg2")
     val remoteMsgs = RemoteMsgs(msgs.map { _.encodeStr })
     val actual = toAndFromBinary(remoteMsgs)
     actual.values.map { _.decodeStr } shouldEqual msgs

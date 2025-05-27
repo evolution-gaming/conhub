@@ -3,7 +3,7 @@ package com.evolutiongaming.conhub
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.evolutiongaming.concurrent.sequentially.Sequentially
-import com.evolutiongaming.nel.Nel
+import cats.data.NonEmptyList as Nel
 import com.evolutiongaming.concurrent.FutureHelper.*
 import com.typesafe.scalalogging.LazyLogging
 
@@ -58,7 +58,7 @@ object ConHubImpl extends LazyLogging {
           // I prefer second…
 
           // Future.traverseSequentially(msgs.toList) { msg =>
-          msgs.foreach { msg =>
+          msgs.toList.foreach { msg =>
             def send() = {
               val cons = this.cons(msg.lookup, localCall = false)
               if (cons.nonEmpty) {
@@ -90,7 +90,7 @@ object ConHubImpl extends LazyLogging {
           if (cons.nonEmpty) {
             sendMsgs.local(msg, cons, remote = false)
             val addresses = this.addresses(cons).toSet
-            if (addresses.nonEmpty) sendMsgs.remote(Nel(msg), addresses)
+            if (addresses.nonEmpty) sendMsgs.remote(Nel.one(msg), addresses)
           }
           SendResult(cons)
         }
@@ -102,7 +102,7 @@ object ConHubImpl extends LazyLogging {
       }
 
       def !(msgs: Nel[M]): SR = {
-        for {msg <- msgs} logAndMeter(msg)
+        for {msg <- msgs.toList} logAndMeter(msg)
 
         val msgsAndCons = for {
           msg <- msgs.toList
@@ -110,7 +110,7 @@ object ConHubImpl extends LazyLogging {
           if cons.nonEmpty
         } yield (msg, cons)
 
-        val future = Nel.opt(msgsAndCons) match {
+        val future = Nel.fromList(msgsAndCons) match {
           case Some(msgsAndCons) =>
             Future.traverseSequentially(msgsAndCons.toList) { case (msg, connections) =>
               def send() = sendMsgs.local(msg, connections, remote = false)
@@ -128,7 +128,7 @@ object ConHubImpl extends LazyLogging {
           (msg, cons) <- msgsAndCons if addresses(cons).nonEmpty
         } yield msg
 
-        for {remoteMsgs <- Nel.opt(remoteMsgs)} sendMsgs.remote(remoteMsgs, Nil)
+        for {remoteMsgs <- Nel.fromList(remoteMsgs)} sendMsgs.remote(remoteMsgs, Nil)
 
         val cons = msgsAndCons.flatMap { case (_, cons) => cons }
 

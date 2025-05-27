@@ -4,7 +4,7 @@ import java.io.NotSerializableException
 
 import akka.serialization.SerializerWithStringManifest
 import com.evolutiongaming.conhub.RemoteEvent as R
-import com.evolutiongaming.nel.Nel
+import cats.data.NonEmptyList as Nel
 import scodec.bits.{BitVector, ByteVector}
 import scodec.{Attempt, Codec, DecodeResult, codecs}
 
@@ -54,7 +54,7 @@ object ConHubSerializer {
 
   def codecsNel[A](codec: Codec[A]): Codec[Nel[A]] = {
     val codec1 = codecs.variableSizeBytes(codecs.int32, codec)
-    codecs.listOfN(codecs.int32, codec1).xmap[Nel[A]](Nel.unsafe, _.toList)
+    codecs.listOfN(codecs.int32, codec1).xmap[Nel[A]](Nel.fromListUnsafe, _.toList)
   }
 
   private val codecMsgs = codecsNel(codecBytes).as[RemoteMsgs]

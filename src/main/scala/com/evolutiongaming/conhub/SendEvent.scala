@@ -3,7 +3,7 @@ package com.evolutiongaming.conhub
 import akka.actor.{ActorRefFactory, ActorSystem, Address}
 import com.evolutiongaming.conhub.transport.{ReceiveMsg, SendMsg}
 import com.evolutiongaming.conhub.RemoteEvent as R
-import com.evolutiongaming.nel.Nel
+import cats.data.NonEmptyList as Nel
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,7 +52,7 @@ object SendEvent {
         val idStr = idSerializer.to(id)
         val conBytes = conSerializer.to(con)
         val value = R.Value(idStr, conBytes, version)
-        val sync = R.Event.Sync(Nel(value))
+        val sync = R.Event.Sync(Nel.one(value))
         send(sync)
       }
     }
@@ -144,7 +144,7 @@ object ReceiveEvent {
 
         def onSync(values: Nel[R.Value]): Unit = {
           for {
-            value <- values
+            value <- values.toList
           } onUpdated(value)
         }
 
