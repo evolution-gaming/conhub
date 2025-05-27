@@ -3,7 +3,7 @@ package com.evolutiongaming.conhub
 import akka.actor.Address
 import com.evolutiongaming.concurrent.sequentially.Sequentially
 import com.evolutiongaming.concurrent.FutureHelper.*
-import com.evolutiongaming.nel.Nel
+import cats.data.NonEmptyList as Nel
 import scodec.bits.ByteVector
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -16,7 +16,7 @@ class ConHubSpec extends AnyWordSpec {
 
     "don't fail with NPE in case of sending a message during initialization" in new Scope {
       val connect: ConHubImpl.Connect[Void, Void, Void, Void] = onMsg => {
-        onMsg(Nel(void))
+        onMsg(Nel.one(void))
         (searchEngine, conStates, sendMsgs)
       }
 
