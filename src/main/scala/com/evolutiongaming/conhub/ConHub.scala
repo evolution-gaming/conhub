@@ -1,7 +1,6 @@
 package com.evolutiongaming.conhub
 
-import com.evolutiongaming.nel.Nel
-
+import cats.data.NonEmptyList as Nel
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
