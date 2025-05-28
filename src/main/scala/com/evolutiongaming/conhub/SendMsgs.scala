@@ -21,7 +21,7 @@ object SendMsgs {
 
       def apply(msg: M, con: C.Connected): Unit = {
         con match {
-          //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+          //@unchecked needed to work around a Scala 3.3.6 compiler quirk with pattern matching
           case con: C.Local@unchecked => con.send(MsgAndRemote(msg))
           case con: C.Remote          => remote(Nel.one(msg), List(con.address))
         }
@@ -34,7 +34,7 @@ object SendMsgs {
       def local(msg: M, cons: Iterable[C], remote: Boolean): Unit = {
         val msgAndRemote = MsgAndRemote(msg, remote)
         for {con <- cons} con match {
-          //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+          //@unchecked needed to work around a Scala 3.3.6 compiler quirk with pattern matching
           case x: C.Local@unchecked => x.send(msgAndRemote)
           case _                    =>
         }
