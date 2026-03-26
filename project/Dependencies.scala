@@ -7,7 +7,7 @@ object Dependencies {
   val sequentially         = "com.evolutiongaming"        %% "sequentially"       % "3.2.0"
   val `akka-serialization` = "com.evolutiongaming"        %% "akka-serialization" % "1.1.0"
   val `scala-tools`        = "com.evolutiongaming"        %% "scala-tools"        % "3.0.6"
-  val scalatest            = "org.scalatest"              %% "scalatest"          % "3.2.19"
+  val scalatest            = "org.scalatest"              %% "scalatest"          % "3.2.20"
   val `scala-logging`      = "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.6"
   val `scodec-bits`        = "org.scodec"                 %% "scodec-bits"        % "1.2.1"
   val `scodec-core1`       = "org.scodec"                 %% "scodec-core"        % "1.11.11"
