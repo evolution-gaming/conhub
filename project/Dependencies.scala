@@ -4,7 +4,7 @@ object Dependencies {
 
   val `config-tools`       = "com.evolutiongaming"        %% "config-tools"       % "1.0.5"
   val `future-helper`      = "com.evolutiongaming"        %% "future-helper"      % "1.0.7"
-  val sequentially         = "com.evolutiongaming"        %% "sequentially"       % "3.0.0"
+  val sequentially         = "com.evolutiongaming"        %% "sequentially"       % "3.2.0"
   val `akka-serialization` = "com.evolutiongaming"        %% "akka-serialization" % "1.1.0"
   val `scala-tools`        = "com.evolutiongaming"        %% "scala-tools"        % "3.0.6"
   val scalatest            = "org.scalatest"              %% "scalatest"          % "3.2.19"
