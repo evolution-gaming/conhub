@@ -51,7 +51,7 @@ object ConStates {
 
     val conStates = apply(states, scheduler, conSerializer, onChanged, now, connect)
 
-    scheduler.scheduleWithFixedDelay(checkConsistencyInterval, checkConsistencyInterval) {
+    val _ = scheduler.scheduleWithFixedDelay(checkConsistencyInterval, checkConsistencyInterval) {
       () => for {id <- states.values.keys} conStates.checkConsistency(id)
     }
 

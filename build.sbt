@@ -26,6 +26,9 @@ Compile / scalacOptions ++= {
 
 Test / fork := true
 
+// scalatest matchers (shouldEqual, etc.) are routinely used as discarded statements mid-test
+Test / scalacOptions := (Test / scalacOptions).value.filterNot(_ == "-Wnonunit-statement")
+
 publishTo := Some(Resolver.evolutionReleases)
 
 libraryDependencies ++= Seq(
