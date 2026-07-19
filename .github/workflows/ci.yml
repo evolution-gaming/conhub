@@ -42,6 +42,7 @@ jobs:
           file: target/out/jvm/scala-${{ matrix.scala }}/conhub/coverage-report/cobertura.xml
           format: cobertura
           flag-name: Scala ${{ matrix.scala }}
+          parallel: true
 
       - name: slack
         uses: homoluctus/slatify@master
@@ -50,3 +51,14 @@ jobs:
           type: ${{ job.status }}
           job_name: Build
           url: ${{ secrets.SLACK_WEBHOOK }}
+
+  coverage-finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: coveralls finished
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2.3.7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
+          carryforward: "Scala 2.13.18,Scala 3.3.3"
