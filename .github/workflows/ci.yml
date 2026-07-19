@@ -27,6 +27,11 @@ jobs:
       - uses: sbt/setup-sbt@9d56cf12e9b58d219605e1d8bfe69a8395fedde0 # v1
 
       - name: build ${{ matrix.scala }}
+        # SBT_LOCAL_CACHE points at an ephemeral per-run dir so the coverage compile always
+        # runs scalac; otherwise sbt 2's warm build cache serves it and never recreates the
+        # scoverage-data directory, crashing the instrumented tests at runtime.
+        env:
+          SBT_LOCAL_CACHE: ${{ runner.temp }}/sbt-local-cache
         run: sbt "++${{ matrix.scala }}; clean; check; coverage; testFull; coverageReport; coverageAggregate"
 
       - name: upload coverage
