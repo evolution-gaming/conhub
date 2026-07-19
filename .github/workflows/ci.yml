@@ -27,7 +27,7 @@ jobs:
       - uses: sbt/setup-sbt@9d56cf12e9b58d219605e1d8bfe69a8395fedde0 # v1
 
       - name: build ${{ matrix.scala }}
-        run: sbt "++${{ matrix.scala }}; clean; check; coverage; test; coverageReport; coverageAggregate"
+        run: sbt "++${{ matrix.scala }}; clean; check; coverage; testFull; coverageReport; coverageAggregate"
 
       - name: upload coverage
         if: success()
