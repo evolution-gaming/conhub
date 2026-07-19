@@ -139,7 +139,7 @@ object SendMsg extends StrictLogging {
           logger.debug(s"$name onConnected $address")
           val channel = Channel.Connected(to = ref, from = self)
           state = state + (address -> channel)
-          context.watch(ref)
+          val _ = context.watch(ref)
           val identity = ActorIdentity("ready", Some(self))
           channel(identity)
           connected(address)
