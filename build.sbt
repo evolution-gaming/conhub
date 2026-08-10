@@ -78,12 +78,6 @@ addCommandAlias("build", "+all test package")
 // but it may not be source compatible (ie, it will be a minor release).
 ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
 
-/*
-versionPolicyReportDependencyIssues ignored dependencies when compared to conhub 1.3.0.
-All of those should not affect the library users, binary compatibility should be preserved.
-
-Remember to clear up after 1.3.1 release!
- */
 ThisBuild / versionPolicyIgnored ++= Seq(
   /*
   Examples:
