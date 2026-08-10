@@ -31,15 +31,15 @@ object SendMsg extends StrictLogging {
     implicit case object ActorIdentityTell extends Tell[ActorIdentity]
   }
 
-
   def apply[A](
     name: String,
     receive: ReceiveMsg[A],
     factory: ActorRefFactory,
     role: String,
-    retryInterval: FiniteDuration = RetryInterval)(implicit
+    retryInterval: FiniteDuration = RetryInterval,
+  )(implicit
     tag: ClassTag[A],
-    system: ActorSystem
+    system: ActorSystem,
   ): SendMsg[A] = {
     def validate(cluster: Cluster): Unit =
       if (!cluster.selfRoles.contains(role))
@@ -63,11 +63,10 @@ object SendMsg extends StrictLogging {
     role: String,
   )(implicit
     tag: ClassTag[A],
-    system: ActorSystem
+    system: ActorSystem,
   ): SendMsg[A] = {
 
     final case class Retry(address: Address)
-
 
     sealed trait Channel
 
@@ -77,19 +76,23 @@ object SendMsg extends StrictLogging {
 
       final case class Connected(to: ActorRef, from: ActorRef) extends Channel {
 
-        def apply[M](msg: M)(implicit tell: Tell[M]): Unit = tell(msg, to = to, from = from)
+        def apply[M](
+          msg: M,
+        )(implicit
+          tell: Tell[M],
+        ): Unit = tell(msg, to = to, from = from)
 
         override def toString: String = s"$productPrefix(${ to.path.address })"
       }
     }
-
 
     implicit val tell: Tell[A] = new Tell[A] {}
 
     var state = Map.empty[Address, Channel]
 
     def safe(msg: => String)(f: => Unit): Unit = {
-      try f catch {
+      try f
+      catch {
         case NonFatal(failure) => logger.error(s"$name $msg: $failure", failure)
       }
     }
@@ -147,8 +150,8 @@ object SendMsg extends StrictLogging {
 
         state.get(address) match {
           case Some(_: Channel.Connecting) => onConnected()
-          case Some(_: Channel.Connected)  => logger.debug(s"$name already connected to $address")
-          case None                        =>
+          case Some(_: Channel.Connected) => logger.debug(s"$name already connected to $address")
+          case None =>
             logger.warn(s"$name cannot find channel for $address")
             onConnected()
         }
@@ -178,11 +181,11 @@ object SendMsg extends StrictLogging {
         }
 
         event match {
-          case event: MemberUp       => onMemberUp(event.member)
+          case event: MemberUp => onMemberUp(event.member)
           case event: MemberWeaklyUp => onMemberUp(event.member)
-          case event: MemberRemoved  => onMemberRemoved(event.member.address)
-          case event: MemberDowned   => onMemberDowned(event.member.address)
-          case _                     =>
+          case event: MemberRemoved => onMemberRemoved(event.member.address)
+          case event: MemberDowned => onMemberDowned(event.member.address)
+          case _ =>
         }
       }
 
@@ -208,7 +211,7 @@ object SendMsg extends StrictLogging {
         logger.debug(s"$name receive ActorIdentity $id from $address")
         ref match {
           case Some(ref) => connect(ref)
-          case None      =>
+          case None =>
             val address = state.collectFirst { case (address, Channel.Connecting(`id`)) => address }
             address match {
               case Some(address) =>
@@ -225,8 +228,8 @@ object SendMsg extends StrictLogging {
         logger.debug(s"$name receive Retry $address")
         state.get(address) match {
           case Some(c: Channel.Connecting) => identify(address, c.id)
-          case Some(_: Channel.Connected)  => logger.debug(s"$name already connected to $address")
-          case None                        => logger.warn(s"$name cannot find io for $address")
+          case Some(_: Channel.Connected) => logger.debug(s"$name already connected to $address")
+          case None => logger.warn(s"$name cannot find io for $address")
         }
       }
 
@@ -242,14 +245,14 @@ object SendMsg extends StrictLogging {
       }
 
       def receive: Receive = {
-        case x: MemberEvent                    => onMemberEvent(x)
-        case x: CurrentClusterState            => onClusterState(x)
-        case ActorIdentity(id: Long, ref)      => onActorIdentity(id, ref)
+        case x: MemberEvent => onMemberEvent(x)
+        case x: CurrentClusterState => onClusterState(x)
+        case ActorIdentity(id: Long, ref) => onActorIdentity(id, ref)
         case ActorIdentity("ready", Some(ref)) => onReady(ref)
-        case Terminated(ref)                   => onTerminated(ref.path.address)
-        case Retry(address)                    => onRetry(address)
-        case tag(x)                            => onMsg(x, sender().path.address)
-        case x                                 => logger.warn(s"$name receive unexpected $x from ${ sender() }")
+        case Terminated(ref) => onTerminated(ref.path.address)
+        case Retry(address) => onRetry(address)
+        case tag(x) => onMsg(x, sender().path.address)
+        case x => logger.warn(s"$name receive unexpected $x from ${ sender() }")
       }
     }
 
@@ -265,7 +268,7 @@ object SendMsg extends StrictLogging {
           (address, channel) <- state
         } channel match {
           case channel: Channel.Connected => channel(msg)
-          case _                          => ref.tell(address, msg)
+          case _ => ref.tell(address, msg)
         }
       }
 
@@ -275,7 +278,7 @@ object SendMsg extends StrictLogging {
           address <- addresses
         } state.get(address) match {
           case Some(channel: Channel.Connected) => channel(msg)
-          case _                                => ref.tell(address, msg)
+          case _ => ref.tell(address, msg)
         }
       }
 
@@ -284,18 +287,17 @@ object SendMsg extends StrictLogging {
   }
 
   def apply[A, B](sendMsg: SendMsg[A], f: B => A): SendMsg[B] = {
-    (msg: B, addresses: Iterable[Address]) => {
-      sendMsg(f(msg), addresses)
-    }
+    (msg: B, addresses: Iterable[Address]) =>
+      {
+        sendMsg(f(msg), addresses)
+      }
   }
-
 
   private val Empty = new SendMsg[Any] {
     def apply(msg: Any, addresses: Iterable[Address]): Unit = {}
   }
 
   def empty[A]: SendMsg[A] = Empty
-
 
   implicit class StatusOps(val self: CurrentClusterState) extends AnyVal {
 
@@ -312,7 +314,6 @@ object SendMsg extends StrictLogging {
     }
   }
 
-
   implicit class ActorRefOps(val self: ActorRef) extends AnyVal {
 
     def path(address: Address): ActorPath = {
@@ -321,18 +322,27 @@ object SendMsg extends StrictLogging {
       ActorPath.fromString(absolute)
     }
 
-    def remote(address: Address)(implicit system: ActorSystem): ActorSelection = {
+    def remote(
+      address: Address,
+    )(implicit
+      system: ActorSystem,
+    ): ActorSelection = {
       val remote = path(address)
       system.actorSelection(remote)
     }
 
-    def tell[A](address: Address, msg: A)(implicit system: ActorSystem, tell: Tell[A]): Unit = {
+    def tell[A](
+      address: Address,
+      msg: A,
+    )(implicit
+      system: ActorSystem,
+      tell: Tell[A],
+    ): Unit = {
       val remote = self.remote(address)
       tell(msg, to = remote, from = self)
     }
   }
 }
-
 
 trait ReceiveMsg[-A] {
 
@@ -354,7 +364,6 @@ object ReceiveMsg {
   }
 
   def empty[A]: ReceiveMsg[A] = Empty
-
 
   def apply[A](onMsg: A => Unit): ReceiveMsg[A] = {
     new ReceiveMsg[A] {

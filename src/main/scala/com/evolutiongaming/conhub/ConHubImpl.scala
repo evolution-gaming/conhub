@@ -1,15 +1,13 @@
 package com.evolutiongaming.conhub
 
-import java.util.concurrent.atomic.AtomicBoolean
-
-import com.evolutiongaming.concurrent.sequentially.Sequentially
 import cats.data.NonEmptyList as Nel
 import com.evolutiongaming.concurrent.FutureHelper.*
+import com.evolutiongaming.concurrent.sequentially.Sequentially
 import com.typesafe.scalalogging.LazyLogging
 
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-
 
 object ConHubImpl extends LazyLogging {
 
@@ -22,8 +20,9 @@ object ConHubImpl extends LazyLogging {
     sequentially: Sequentially[K],
     msgOps: ConHubImpl.MsgOps[M, L, K],
     metrics: ConMetrics[Id, A, M],
-    connect: Connect[Id, A, L, M])(implicit
-    ec: ExecutionContext
+    connect: Connect[Id, A, L, M],
+  )(implicit
+    ec: ExecutionContext,
   ): ConHub[Id, A, M, L] = {
     apply(
       sequentiallyLocal = sequentially,
@@ -31,7 +30,8 @@ object ConHubImpl extends LazyLogging {
       msgOps,
       metrics,
       connect,
-      ec)
+      ec,
+    )
   }
 
   def apply[Id, A, L, K, M](
@@ -40,7 +40,7 @@ object ConHubImpl extends LazyLogging {
     msgOps: ConHubImpl.MsgOps[M, L, K],
     metrics: ConMetrics[Id, A, M],
     connect: Connect[Id, A, L, M],
-    executor: ExecutionContext
+    executor: ExecutionContext,
   ): ConHub[Id, A, M, L] = {
 
     implicit val executor1: ExecutionContext = executor
@@ -67,7 +67,7 @@ object ConHubImpl extends LazyLogging {
             }
 
             msg.key match {
-              case None      => Future { send() } // to not block current actor
+              case None => Future { send() } // to not block current actor
               case Some(key) => sequentiallyRemote(key) { send() }
             }
           }
@@ -96,13 +96,13 @@ object ConHubImpl extends LazyLogging {
         }
 
         msg.key match {
-          case None      => execute.future
+          case None => execute.future
           case Some(key) => sequentiallyLocal(key) { execute }
         }
       }
 
       def !(msgs: Nel[M]): SR = {
-        for {msg <- msgs.toList} logAndMeter(msg)
+        for { msg <- msgs.toList } logAndMeter(msg)
 
         val msgsAndCons = for {
           msg <- msgs.toList
@@ -116,11 +116,11 @@ object ConHubImpl extends LazyLogging {
               def send() = sendMsgs.local(msg, connections, remote = false)
 
               msg.key match {
-                case None      => send().future
+                case None => send().future
                 case Some(key) => sequentiallyLocal(key) { send() }
               }
             }
-          case None              =>
+          case None =>
             Future.unit
         }
 
@@ -128,15 +128,19 @@ object ConHubImpl extends LazyLogging {
           (msg, cons) <- msgsAndCons if addresses(cons).nonEmpty
         } yield msg
 
-        for {remoteMsgs <- Nel.fromList(remoteMsgs)} sendMsgs.remote(remoteMsgs, Nil)
+        for { remoteMsgs <- Nel.fromList(remoteMsgs) } sendMsgs.remote(remoteMsgs, Nil)
 
         val cons = msgsAndCons.flatMap { case (_, cons) => cons }
 
         future map { _ => SendResult(cons) }
       }
 
-
-      def update(id: Id, version: Version, con: A, send: Conn.Send[M]): Result = {
+      def update(
+        id: Id,
+        version: Version,
+        con: A,
+        send: Conn.Send[M],
+      ): Result = {
         conStates.update(id, Conn.Local(con, send, version))
       }
 
@@ -163,7 +167,6 @@ object ConHubImpl extends LazyLogging {
       }
     }
   }
-
 
   trait MsgOps[A, L, K] {
     def lookup(x: A): L

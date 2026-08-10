@@ -11,5 +11,3 @@ jobs:
     with:
       scala_versions: '["2.13.16", "3.3.3"]'
       java_version: '21'
-      # TODO no sbt-scalafmt in this repo, so formatting was never checked
-      scalafmt_check: false

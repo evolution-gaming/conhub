@@ -1,13 +1,12 @@
 package com.evolutiongaming.conhub
 
-import java.io.NotSerializableException
-
 import akka.serialization.SerializerWithStringManifest
-import com.evolutiongaming.conhub.RemoteEvent as R
 import cats.data.NonEmptyList as Nel
+import com.evolutiongaming.conhub.RemoteEvent as R
 import scodec.bits.{BitVector, ByteVector}
 import scodec.{Attempt, Codec, DecodeResult, codecs}
 
+import java.io.NotSerializableException
 import scala.annotation.nowarn
 import scala.concurrent.duration.*
 
@@ -22,31 +21,31 @@ class ConHubSerializer extends SerializerWithStringManifest {
   def manifest(x: AnyRef): String = {
     x match {
       case _: RemoteEvent => EventManifest
-      case _: RemoteMsgs  => MsgsManifest
-      case _              => illegalArgument(s"Cannot serialize message of ${ x.getClass } in ${ getClass.getName }")
+      case _: RemoteMsgs => MsgsManifest
+      case _ => illegalArgument(s"Cannot serialize message of ${ x.getClass } in ${ getClass.getName }")
     }
   }
 
   def toBinary(x: AnyRef): Array[Byte] = {
     x match {
       case x: RemoteEvent => eventToBinary(x).require.toArray
-      case x: RemoteMsgs  => msgsToBinary(x).require.toByteArray
-      case _              => illegalArgument(s"Cannot serialize message of ${ x.getClass } in ${ getClass.getName }")
+      case x: RemoteMsgs => msgsToBinary(x).require.toByteArray
+      case _ => illegalArgument(s"Cannot serialize message of ${ x.getClass } in ${ getClass.getName }")
     }
   }
 
   def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
     manifest match {
       case EventManifest => eventFromBinary(BitVector.view(bytes))
-      case MsgsManifest  => msgsFromBinary(BitVector.view(bytes))
-      case _             => notSerializable(s"Cannot deserialize message for manifest $manifest in ${ getClass.getName }")
+      case MsgsManifest => msgsFromBinary(BitVector.view(bytes))
+      case _ => notSerializable(s"Cannot deserialize message for manifest $manifest in ${ getClass.getName }")
     }
   }
 }
 
 //suppresses comp warning for 2.13 with -Xsource:3
 @nowarn(
-  "msg=Implicit method .+ was found in a package prefix of the required type, which is not part of the implicit scope in Scala 3"
+  "msg=Implicit method .+ was found in a package prefix of the required type, which is not part of the implicit scope in Scala 3",
 )
 object ConHubSerializer {
 
@@ -77,11 +76,10 @@ object ConHubSerializer {
 
   private def illegalArgument(msg: String): Nothing = throw new IllegalArgumentException(msg)
 
-
   private def eventFromBinary(bits: BitVector) = {
     val result = for {
       result <- codecs.int32.decode(bits)
-      bits    = result.remainder
+      bits = result.remainder
       result <- result.value match {
         case 0 => codecUpdated.decode(bits)
         case 1 => codecRemoved.decode(bits)
@@ -108,11 +106,11 @@ object ConHubSerializer {
     }
 
     x.event match {
-      case a: R.Event.Updated      => withMark(0, codecUpdated.encode(a))
-      case a: R.Event.Removed      => withMark(1, codecRemoved.encode(a))
+      case a: R.Event.Updated => withMark(0, codecUpdated.encode(a))
+      case a: R.Event.Removed => withMark(1, codecRemoved.encode(a))
       case a: R.Event.Disconnected => withMark(2, codecDisconnected.encode(a))
-      case a: R.Event.Sync         => withMark(3, codecSync.encode(a))
-      case R.Event.ConHubJoined    => withMark(4, Attempt.successful(BitVector.empty))
+      case a: R.Event.Sync => withMark(3, codecSync.encode(a))
+      case R.Event.ConHubJoined => withMark(4, Attempt.successful(BitVector.empty))
     }
   }
 

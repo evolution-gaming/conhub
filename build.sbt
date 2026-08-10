@@ -19,7 +19,7 @@ crossScalaVersions := Seq("2.13.18", "3.3.3")
 Compile / scalacOptions ++= {
   if (scalaBinaryVersion.value == "2.13") {
     Seq(
-      "-Xsource:3"
+      "-Xsource:3",
     )
   } else Seq.empty
 }
@@ -44,7 +44,8 @@ libraryDependencies ++= Seq(
   `akka-serialization`,
   cats,
   `scala-tools` % Test,
-  scalatest % Test)
+  scalatest % Test,
+)
 
 libraryDependencies ++= {
   if (scalaBinaryVersion.value == "2.13") {
@@ -64,7 +65,8 @@ Compile / doc / scalacOptions ++= Seq("-groups", "-implicits", "-no-link-warning
 
 versionScheme := Some("semver-spec")
 
-addCommandAlias("check", "+all versionPolicyCheck Compile/doc")
+addCommandAlias("check", "+all scalafmtCheckRepo versionPolicyCheck Compile/doc")
+addCommandAlias("fmt", "+scalafmtRepo")
 addCommandAlias("build", "+all test package")
 
 // Your next release will be binary compatible with the previous one,

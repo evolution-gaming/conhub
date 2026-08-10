@@ -1,20 +1,19 @@
 package com.evolutiongaming.conhub
 
-import java.time.Instant
-
 import akka.actor.{ActorRef, Address}
 import akka.testkit.TestProbe
 import com.evolutiongaming.concurrent.sequentially.{SequentialMap, Sequentially}
 import com.evolutiongaming.conhub.ConHubSpecHelper.*
 import com.evolutiongaming.conhub.ConStates.{Ctx, Diff}
-import com.evolutiongaming.conhub.transport.SendMsg
 import com.evolutiongaming.conhub.RemoteEvent as R
+import com.evolutiongaming.conhub.transport.SendMsg
 import com.evolutiongaming.test.ActorSpec
-
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.time.Instant
+import scala.concurrent.duration.*
+import scala.concurrent.{ExecutionContext, Future}
 
 class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHubSpecHelper {
 
@@ -97,7 +96,8 @@ class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHub
       conStates.update(id, version, connection, address).get shouldEqual UpdateResult(updated = true, connection)
       state shouldEqual Some(remote)
 
-      conStates.disconnect(id, version.dec, reconnectTimeout, Ctx.Remote(address)).get shouldEqual UpdateResult(connection)
+      conStates.disconnect(id, version.dec, reconnectTimeout, Ctx.Remote(address)).get shouldEqual
+        UpdateResult(connection)
       state shouldEqual Some(remote)
 
       conStates.disconnect(id, version, reconnectTimeout, Ctx.Remote(address))
@@ -201,7 +201,8 @@ class ConStatesSpec extends AnyWordSpec with ActorSpec with Matchers with ConHub
       ConnectionSerializer,
       onStateChanged,
       () => instant,
-      connect)(ExecutionContext.parasitic)
+      connect,
+    )(ExecutionContext.parasitic)
 
     def onStateChanged(diff: Diff[Id, C]) = {
       testActor ! diff

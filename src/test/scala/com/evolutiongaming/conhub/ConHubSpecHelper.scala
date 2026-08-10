@@ -1,9 +1,9 @@
 package com.evolutiongaming.conhub
 
-import java.util.UUID
-
 import com.evolutiongaming.conhub.ConHubSpecHelper.{Msg, Send}
 import scodec.bits.ByteVector
+
+import java.util.UUID
 
 trait ConHubSpecHelper extends ConnTypes[Connection, ConHubSpecHelper.Id] {
 
@@ -26,7 +26,6 @@ object ConHubSpecHelper {
     def to(x: Connection): ByteVector = ByteVector.encodeUtf8(x.id).fold(throw _, identity)
     def from(bytes: ByteVector): Connection = Connection(bytes.decodeUtf8.fold(throw _, identity))
   }
-
 
   class Send extends Conn.Send[Msg] {
     def apply(x: MsgAndRemote[Msg]): Unit = ()
