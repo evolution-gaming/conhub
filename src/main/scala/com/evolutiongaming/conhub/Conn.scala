@@ -23,7 +23,7 @@ object Conn {
   object Connected {
 
     def unapply[A, M](x: Conn[A, M]): Option[Connected[A, M]] = PartialFunction.condOpt(x) {
-      case x: Connected[A, M] => x
+      case x: Connected[A @unchecked, M @unchecked] => x
     }
   }
 
