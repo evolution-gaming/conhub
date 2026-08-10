@@ -54,6 +54,8 @@ object SendMsg extends StrictLogging {
     }
   }
 
+  private final case class Retry(address: Address)
+
   private def apply[A](
     name: String,
     receive: ReceiveMsg[A],
@@ -65,8 +67,6 @@ object SendMsg extends StrictLogging {
     tag: ClassTag[A],
     system: ActorSystem,
   ): SendMsg[A] = {
-
-    final case class Retry(address: Address)
 
     sealed trait Channel
 

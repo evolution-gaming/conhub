@@ -14,14 +14,19 @@ organizationHomepage := Some(url("https://evolution.com"))
 
 scalaVersion := crossScalaVersions.value.head
 
-crossScalaVersions := Seq("2.13.18", "3.3.3")
+crossScalaVersions := Seq("2.13.18", "3.3.8")
 
 Compile / scalacOptions ++= {
   if (scalaBinaryVersion.value == "2.13") {
     Seq(
       "-Xsource:3",
     )
-  } else Seq.empty
+  } else {
+    Seq(
+      "--explain",
+      "--explain-types",
+    )
+  }
 }
 
 Test / fork := true
