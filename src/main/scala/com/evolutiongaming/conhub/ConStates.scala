@@ -1,13 +1,12 @@
 package com.evolutiongaming.conhub
 
-import java.time.Instant
-
 import akka.actor.{Address, Scheduler}
 import com.evolutiongaming.concurrent.sequentially.{MapDirective, SequentialMap}
 import com.evolutiongaming.conhub.SequentialMapHelper.*
 import com.typesafe.scalalogging.LazyLogging
 import scodec.bits.ByteVector
 
+import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -20,11 +19,26 @@ trait ConStates[Id, A, M] extends ConnTypes[A, M] {
 
   def update(id: Id, local: C.Local): Result
 
-  def update(id: Id, version: Version, value: ByteVector, address: Address): Result
+  def update(
+    id: Id,
+    version: Version,
+    value: ByteVector,
+    address: Address,
+  ): Result
 
-  def update(id: Id, version: Version, conn: A, address: Address): Result
+  def update(
+    id: Id,
+    version: Version,
+    conn: A,
+    address: Address,
+  ): Result
 
-  def disconnect(id: Id, version: Version, timeout: FiniteDuration, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result
+  def disconnect(
+    id: Id,
+    version: Version,
+    timeout: FiniteDuration,
+    ctx: ConStates.Ctx = ConStates.Ctx.Local,
+  ): Result
 
   def remove(id: Id, version: Version, ctx: ConStates.Ctx = ConStates.Ctx.Local): Result
 
@@ -32,7 +46,6 @@ trait ConStates[Id, A, M] extends ConnTypes[A, M] {
 
   def sync(id: Id): Result
 }
-
 
 object ConStates {
 
@@ -45,14 +58,15 @@ object ConStates {
     conSerializer: Serializer.Bin[A],
     onChanged: Diff[Id, Conn[A, M]] => Future[Unit],
     now: () => Instant,
-    connect: Connect[Id, A, M])(implicit
-    ec: ExecutionContext
+    connect: Connect[Id, A, M],
+  )(implicit
+    ec: ExecutionContext,
   ): ConStates[Id, A, M] = {
 
     val conStates = apply(states, scheduler, conSerializer, onChanged, now, connect)
 
     scheduler.scheduleWithFixedDelay(checkConsistencyInterval, checkConsistencyInterval) {
-      () => for {id <- states.values.keys} conStates.checkConsistency(id)
+      () => for { id <- states.values.keys } conStates.checkConsistency(id)
     }
 
     conStates
@@ -64,7 +78,10 @@ object ConStates {
     conSerializer: Serializer.Bin[A],
     onChanged: Diff[Id, Conn[A, M]] => Future[Unit],
     now: () => Instant,
-    connect: Connect[Id, A, M])(implicit ec: ExecutionContext): ConStates[Id, A, M] = {
+    connect: Connect[Id, A, M],
+  )(implicit
+    ec: ExecutionContext,
+  ): ConStates[Id, A, M] = {
 
     new ConStates[Id, A, M] with LazyLogging {
 
@@ -78,20 +95,35 @@ object ConStates {
         }
       }
 
-      def update(id: Id, version: Version, value: ByteVector, address: Address): Result = {
+      def update(
+        id: Id,
+        version: Version,
+        value: ByteVector,
+        address: Address,
+      ): Result = {
         updatePf(id, Some(version), s"update $address") { case before =>
           val con = conSerializer.from(value)
           update(id, Conn.Remote(con, address, version), before, local = false)
         }
       }
 
-      def update(id: Id, version: Version, con: A, address: Address): Result = {
+      def update(
+        id: Id,
+        version: Version,
+        con: A,
+        address: Address,
+      ): Result = {
         updatePf(id, Some(version), s"update $address") { case before =>
           update(id, Conn.Remote(con, address, version), before, local = false)
         }
       }
 
-      def disconnect(id: Id, version: Version, timeout: FiniteDuration, ctx: Ctx): Result = {
+      def disconnect(
+        id: Id,
+        version: Version,
+        timeout: FiniteDuration,
+        ctx: Ctx,
+      ): Result = {
         updatePf(id, Some(version), s"disconnect $ctx") { case Some(c) =>
 
           def disconnect(local: Boolean): R = {
@@ -103,25 +135,27 @@ object ConStates {
               val timeoutFinal = if (local) timeout else (timeout * 1.2).asInstanceOf[FiniteDuration]
 
               val _ = scheduler.scheduleOnce(timeoutFinal) {
-                val _ = updatePf(id, Some(version), "timeout") { case Some(before: C.Disconnected) if before.timestamp == timestamp =>
-                  remove(id, version, local = local)
+                val _ = updatePf(id, Some(version), "timeout") {
+                  case Some(before: C.Disconnected) if before.timestamp == timestamp =>
+                    remove(id, version, local = local)
                 }
               }
             }
           }
 
           (ctx, c) match {
-            //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
-            case (Ctx.Local, _: C.Local@unchecked)                          => disconnect(local = true)
+            // @unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+            case (Ctx.Local, _: C.Local @unchecked) => disconnect(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => disconnect(local = false)
-            case _                                                          => R.Ignore
+            case _ => R.Ignore
           }
         }
       }
 
       def checkConsistency(id: Id): Result = {
-        updatePf(id, None, "checkConsistency") { case Some(before: C.Disconnected) if before.expired(now()) =>
-          remove(id, before.version, local = true)
+        updatePf(id, None, "checkConsistency") {
+          case Some(before: C.Disconnected) if before.expired(now()) =>
+            remove(id, before.version, local = true)
         }
       }
 
@@ -131,24 +165,25 @@ object ConStates {
           def remove(local: Boolean) = this.remove(id, version, local)
 
           (ctx, c) match {
-            //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
-            case (Ctx.Local, _: C.Local@unchecked)                          => remove(local = true)
+            // @unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+            case (Ctx.Local, _: C.Local @unchecked) => remove(local = true)
             case (ctx: Ctx.Remote, c: C.Remote) if c.address == ctx.address => remove(local = false)
-            case (_, _: C.Disconnected)                                     => remove(local = ctx == Ctx.Local)
-            case _                                                          => R.Ignore
+            case (_, _: C.Disconnected) => remove(local = ctx == Ctx.Local)
+            case _ => R.Ignore
           }
         }
       }
 
       def sync(id: Id) = {
-        //@unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
-        updatePf(id, None, "sync") { case Some(c: C.Local@unchecked) =>
+        // @unchecked needed to work around a Scala 3.3.3 compiler quirk with pattern matching
+        updatePf(id, None, "sync") { case Some(c: C.Local @unchecked) =>
           send.sync(id, c.value, c.version)
           R.Ignore
         }
       }
 
-      private def updatePf(id: Id, version: Option[Version], name: => String)(pf: PartialFunction[Option[C], R]): Result = {
+      private def updatePf(id: Id, version: Option[Version], name: => String)(pf: PartialFunction[Option[C], R])
+        : Result = {
 
         val future = states.updateAndRun(id) { before =>
           val R(directive, callback) = {
@@ -171,12 +206,13 @@ object ConStates {
               if (before != after) {
                 callback()
                 val diff = Diff(id, before = before, after = after)
-                val future = try onChanged(diff) catch {
+                val future = try onChanged(diff)
+                catch {
                   case NonFatal(x) => Future.failed(x)
                 }
 
                 future.onComplete {
-                  case Success(_)     =>
+                  case Success(_) =>
                   case Failure(error) => logger.error(s"onChanged failed for $id $error", error)
                 }
                 result(true, future)
@@ -187,8 +223,8 @@ object ConStates {
 
             directive match {
               case MapDirective.Update(after) => run(Some(after))
-              case MapDirective.Remove        => run(None)
-              case MapDirective.Ignore        => result(false, Future.unit)
+              case MapDirective.Remove => run(None)
+              case MapDirective.Ignore => result(false, Future.unit)
             }
           }
 
@@ -198,7 +234,7 @@ object ConStates {
         }
 
         future.onComplete {
-          case Success(_)     =>
+          case Success(_) =>
           case Failure(error) => logger.error(s"connection $id update failed $error", error)
         }
 
@@ -208,7 +244,12 @@ object ConStates {
         } yield result
       }
 
-      private def update(id: Id, con: C, before: Option[C], local: Boolean) = {
+      private def update(
+        id: Id,
+        con: C,
+        before: Option[C],
+        local: Boolean,
+      ) = {
         R.update(con) {
           if (local && !before.contains(con)) {
             send.updated(id, con.value, con.version)
@@ -237,7 +278,6 @@ object ConStates {
   }
 
   final case class Diff[Id, +A](id: Id, before: Option[A], after: Option[A])
-
 
   sealed trait Ctx
 

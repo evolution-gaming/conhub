@@ -15,14 +15,14 @@ object SequentialMapHelper {
     }
   }
 
-
   implicit class SetValuesOps[K, V](val self: SequentialMap[K, Set[V]]) extends AnyVal {
 
     def updateSets(
       before: Option[K],
       after: Option[K],
       value: V,
-      onUpdated: (K, Set[V], Set[V]) => Unit = (_, _, _) => ()): Future[Unit] = {
+      onUpdated: (K, Set[V], Set[V]) => Unit = (_, _, _) => (),
+    ): Future[Unit] = {
 
       implicit val ec: ExecutionContext = ExecutionContext.parasitic
 
@@ -38,9 +38,12 @@ object SequentialMapHelper {
       }
     }
 
-    def updateSet(key: K)(
+    def updateSet(
+      key: K,
+    )(
       f: Set[V] => Set[V],
-      onUpdated: (Set[V], Set[V]) => Unit = (_, _) => ()): Future[Unit] = {
+      onUpdated: (Set[V], Set[V]) => Unit = (_, _) => (),
+    ): Future[Unit] = {
 
       self.updateAndRun(key) { value =>
         val before = value getOrElse Set.empty
@@ -53,7 +56,6 @@ object SequentialMapHelper {
 
     def getSet(key: K): Set[V] = self.values.getOrElse(key, Set.empty)
   }
-
 
   implicit class FutureOps[A](val self: Future[A]) extends AnyVal {
 

@@ -13,13 +13,14 @@ object MemberEventSubscribe extends StrictLogging {
     cluster: Cluster,
     factor: ActorRefFactory,
     onState: CurrentClusterState => Unit,
-    onEvent: MemberEvent => Unit): Unsubscribe = {
+    onEvent: MemberEvent => Unit,
+  ): Unsubscribe = {
 
     def actor() = new Actor {
       def receive: Receive = {
         case x: CurrentClusterState => onState(x)
-        case x: MemberEvent         => onEvent(x)
-        case x                      => logger.warn(s"unexpected $x")
+        case x: MemberEvent => onEvent(x)
+        case x => logger.warn(s"unexpected $x")
       }
     }
 

@@ -1,9 +1,9 @@
 package com.evolutiongaming.conhub
 
 import akka.actor.{ActorRefFactory, ActorSystem, Address}
-import com.evolutiongaming.conhub.transport.{ReceiveMsg, SendMsg}
-import com.evolutiongaming.conhub.RemoteEvent as R
 import cats.data.NonEmptyList as Nel
+import com.evolutiongaming.conhub.RemoteEvent as R
+import com.evolutiongaming.conhub.transport.{ReceiveMsg, SendMsg}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,7 +24,7 @@ object SendEvent {
   def apply[Id, A](
     send: R.Event => Unit,
     idSerializer: Serializer.Str[Id],
-    conSerializer: Serializer.Bin[A]
+    conSerializer: Serializer.Bin[A],
   ): SendEvent[Id, A] = {
 
     new SendEvent[Id, A] {
@@ -61,7 +61,7 @@ object SendEvent {
   def apply[Id, A](
     sendMsg: SendMsg[RemoteEvent],
     idSerializer: Serializer.Str[Id],
-    conSerializer: Serializer.Bin[A]
+    conSerializer: Serializer.Bin[A],
   ): SendEvent[Id, A] = {
 
     val send = (event: R.Event) => sendMsg(RemoteEvent(event), Nil)
@@ -75,16 +75,16 @@ object SendEvent {
     idSerializer: Serializer.Str[Id],
     conSerializer: Serializer.Bin[A],
     factory: ActorRefFactory,
-    conhubRole: String)(implicit
+    conhubRole: String,
+  )(implicit
     system: ActorSystem,
-    ec: ExecutionContext
+    ec: ExecutionContext,
   ): SendEvent[Id, A] = {
 
     val receive = ReceiveEvent(conStates, reconnectTimeout, idSerializer)
     val send = SendMsg(name, receive, factory, conhubRole)
     apply(send, idSerializer, conSerializer)
   }
-
 
   def empty[Id, T]: SendEvent[Id, T] = new SendEvent[Id, T] {
     def updated(id: Id, con: T, version: Version): Unit = {}
@@ -94,14 +94,14 @@ object SendEvent {
   }
 }
 
-
 object ReceiveEvent {
 
   def apply[Id, A, M](
     conStates: ConStates[Id, A, M],
     reconnectTimeout: FiniteDuration,
-    idSerializer: Serializer.Str[Id])(implicit
-    ec: ExecutionContext
+    idSerializer: Serializer.Str[Id],
+  )(implicit
+    ec: ExecutionContext,
   ): ReceiveMsg[RemoteEvent] = {
 
     new ReceiveMsg[RemoteEvent] with ConnTypes[A, M] {
@@ -158,13 +158,12 @@ object ReceiveEvent {
           val _ = conStates.remove(id, event.version, ctx)
         }
 
-
         msg.event match {
-          case event: R.Event.Updated      => onUpdated(event.value)
-          case R.Event.Sync(values)        => onSync(values)
+          case event: R.Event.Updated => onUpdated(event.value)
+          case R.Event.Sync(values) => onSync(values)
           case event: R.Event.Disconnected => onDisconnected(event)
-          case event: R.Event.Removed      => onRemoved(event)
-          case R.Event.ConHubJoined        =>
+          case event: R.Event.Removed => onRemoved(event)
+          case R.Event.ConHubJoined =>
         }
       }
     }

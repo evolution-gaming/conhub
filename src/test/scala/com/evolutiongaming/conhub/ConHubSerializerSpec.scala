@@ -1,12 +1,12 @@
 package com.evolutiongaming.conhub
 
-import com.evolutiongaming.conhub.RemoteEvent as R
 import cats.data.NonEmptyList as Nel
+import com.evolutiongaming.conhub.RemoteEvent as R
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import scodec.bits.ByteVector
 
 import scala.concurrent.duration.*
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
 
 class ConHubSerializerSpec extends AnyFunSuite with Matchers {
   import ConHubSerializerSpec.*
