@@ -25,7 +25,7 @@ object Dependencies {
   }
 
   object AkkaTools {
-    private val version = "3.0.13"
+    private val version = "3.1.0"
     val test = "com.evolutiongaming" %% "akka-tools-test" % version
   }
 }
